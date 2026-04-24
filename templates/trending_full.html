@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="main-content">
+    <div class="view-header">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <a href="javascript:history.back()" style="color: var(--text-main); text-decoration: none; padding: 10px; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; transition: background 0.2s;" onmouseover="this.style.background='var(--primary-soft)'" onmouseout="this.style.background='transparent'">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            <h2>Trending</h2>
+        </div>
+    </div>
+
+    <div style="padding: 20px;">
+        <div class="glass-card" style="padding: 0; border: none; background: transparent; backdrop-filter: none; box-shadow: none;">
+            {% if trending %}
+                {% for tag, count in trending %}
+                    <a href="{{ url_for('search', q='#' + tag) }}" class="post-card" style="text-decoration: none; display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid var(--border-color); padding: 20px;">
+                        <div style="font-weight: 800; font-size: 1.1rem; color: var(--text-main);">#{{ tag }}</div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">{{ count }} dits</div>
+                    </a>
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    <i class="fa-solid fa-chart-line" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.2;"></i>
+                    <p>No trends detected yet. Start ditting with hashtags!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

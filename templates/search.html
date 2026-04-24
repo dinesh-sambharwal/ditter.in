@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_macros.html" import character, post_card %}
+
+{% block view_title %}Search Results{% endblock %}
+
+{% block content %}
+<div class="search-results-wrapper">
+    <div style="padding: 15px; border-bottom: 1px solid var(--border-color); background: var(--bg-color); position: sticky; top: 0; z-index: 10;">
+        <h3 style="margin: 0;">Results for "{{ query }}"</h3>
+    </div>
+
+    <!-- Users Results -->
+    {% if users %}
+        <div class="users-section" style="border-bottom: 1px solid var(--border-color);">
+            <div style="padding: 15px; font-weight: 800; border-bottom: 1px solid var(--border-color);">People</div>
+            {% for user in users %}
+                <div class="user-item" style="display: flex; gap: 16px; padding: 16px; transition: background 0.2s; cursor: pointer; border-radius: 12px; margin: 0 8px;" onclick="window.location.href='{{ url_for('user', username=user.username) }}';" onmouseover="this.style.background='rgba(0,0,0,0.03)';" onmouseout="this.style.background='transparent';">
+                    {{ character(user, size=48) }}
+                    <div style="flex: 1;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <div style="font-weight: 700;">{{ user.username }}</div>
+                                <div class="text-muted">@{{ user.username }}</div>
+                            </div>
+                            {% if current_user.is_authenticated and user != current_user %}
+                                {% if not current_user.is_following(user) %}
+                                    <a href="{{ url_for('follow', username=user.username) }}" class="btn-primary" style="padding: 8px 20px; font-size: 0.85rem; height: fit-content;" onclick="event.stopPropagation();">Follow</a>
+                                {% else %}
+                                    <a href="{{ url_for('unfollow', username=user.username) }}" class="btn-primary" style="background: transparent; color: var(--text-main) !important; border: 1px solid var(--border-color); padding: 8px 20px; font-size: 0.85rem; height: fit-content; box-shadow: none;" onclick="event.stopPropagation();">Following</a>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        {% if user.bio %}
+                            <div style="margin-top: 5px; font-size: 0.95rem;">{{ user.bio[:100] }}{% if user.bio|length > 100 %}...{% endif %}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Posts Results -->
+    <div class="posts-section">
+        {% if posts %}
+            <div style="padding: 15px; font-weight: 800; border-bottom: 1px solid var(--border-color);">Dits</div>
+            <div class="posts-list">
+                {% for post in posts %}
+                    {{ post_card(post, current_user, character) }}
+                {% endfor %}
+            </div>
+        {% elif not users %}
+            <div style="padding: 60px 20px; text-align: center; color: var(--text-muted);">
+                <h3 style="margin: 0; color: var(--text-main); font-size: 1.5rem;">No results for "{{ query }}"</h3>
+                <p>Try searching for something else, or check the spelling.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

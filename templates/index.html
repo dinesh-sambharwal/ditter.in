@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% from "_macros.html" import character, post_card %}
+
+{% block view_title %}Home{% endblock %}
+{% block header %}{% endblock %}
+
+{% block content %}
+<div class="main-feed-wrapper">
+    <!-- Compose Box -->
+    <div class="compose-box" style="display: flex; gap: 12px; padding: 16px; border-bottom: 1px solid var(--border-color);">
+        <div style="flex-shrink: 0;">
+            {{ character(current_user, size=48) }}
+        </div>
+        <div style="flex: 1;">
+            <form action="" method="post" enctype="multipart/form-data">
+                {{ form.hidden_tag() }}
+                <div class="form-group" style="margin-bottom: 12px;">
+                    {{ form.content(class="form-control", placeholder="What is happening?!", rows="2", style="border: none; padding: 10px 0; font-size: 1.25rem; background: transparent; resize: none; overflow: hidden; height: auto;", oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"') }}
+                    {% for error in form.content.errors %}
+                        <span class="invalid-feedback">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                
+                    <div id="poll-container" style="display: none; background: rgba(167, 139, 250, 0.05); border: 1px solid var(--primary-soft); border-radius: 16px; padding: 16px; margin-bottom: 12px; animation: fadeIn 0.3s ease-out;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <span style="font-weight: 700; font-size: 0.9rem; color: var(--primary-color);">Poll Settings</span>
+                            <button type="button" onclick="togglePoll()" style="background: transparent; border: none; color: var(--text-muted); cursor: pointer;"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 12px;">
+                            {{ form.poll_question(class="form-control", placeholder="Poll Question (Optional)", style="background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 12px; font-size: 0.95rem;") }}
+                        </div>
+                        <div id="poll-options-list">
+                            <div class="form-group opt-group" style="margin-bottom: 12px; display: flex !important; flex-direction: row !important; align-items: center; gap: 12px;">
+                                <div style="flex-shrink: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+                                    <input type="radio" name="poll_correct_option" value="1" id="correct-1" title="Mark as correct answer" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary-color); margin: 0;">
+                                </div>
+                                {{ form.poll_option1(class="form-control", placeholder="Choice 1", style="flex: 1; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 14px; font-size: 0.95rem; margin-bottom: 0;") }}
+                            </div>
+                            <div class="form-group opt-group" style="margin-bottom: 12px; display: flex !important; flex-direction: row !important; align-items: center; gap: 12px;">
+                                <div style="flex-shrink: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+                                    <input type="radio" name="poll_correct_option" value="2" id="correct-2" title="Mark as correct answer" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary-color); margin: 0;">
+                                </div>
+                                {{ form.poll_option2(class="form-control", placeholder="Choice 2", style="flex: 1; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 14px; font-size: 0.95rem; margin-bottom: 0;") }}
+                            </div>
+                            <div class="form-group opt-group" style="margin-bottom: 12px; display: none; flex-direction: row !important; align-items: center; gap: 12px;" id="opt-group-3">
+                                <div style="flex-shrink: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+                                    <input type="radio" name="poll_correct_option" value="3" id="correct-3" title="Mark as correct answer" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary-color); margin: 0;">
+                                </div>
+                                {{ form.poll_option3(class="form-control", placeholder="Choice 3", style="flex: 1; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 14px; font-size: 0.95rem; margin-bottom: 0;") }}
+                            </div>
+                            <div class="form-group opt-group" style="margin-bottom: 12px; display: none; flex-direction: row !important; align-items: center; gap: 12px;" id="opt-group-4">
+                                <div style="flex-shrink: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+                                    <input type="radio" name="poll_correct_option" value="4" id="correct-4" title="Mark as correct answer" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary-color); margin: 0;">
+                                </div>
+                                {{ form.poll_option4(class="form-control", placeholder="Choice 4", style="flex: 1; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 14px; font-size: 0.95rem; margin-bottom: 0;") }}
+                            </div>
+                            <div class="form-group opt-group" style="margin-bottom: 12px; display: none; flex-direction: row !important; align-items: center; gap: 12px;" id="opt-group-5">
+                                <div style="flex-shrink: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+                                    <input type="radio" name="poll_correct_option" value="5" id="correct-5" title="Mark as correct answer" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary-color); margin: 0;">
+                                </div>
+                                {{ form.poll_option5(class="form-control", placeholder="Choice 5", style="flex: 1; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 14px; font-size: 0.95rem; margin-bottom: 0;") }}
+                            </div>
+                            <div class="form-group opt-group" style="margin-bottom: 12px; display: none; flex-direction: row !important; align-items: center; gap: 12px;" id="opt-group-6">
+                                <div style="flex-shrink: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">
+                                    <input type="radio" name="poll_correct_option" value="6" id="correct-6" title="Mark as correct answer" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary-color); margin: 0;">
+                                </div>
+                                {{ form.poll_option6(class="form-control", placeholder="Choice 6", style="flex: 1; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 14px; font-size: 0.95rem; margin-bottom: 0;") }}
+                            </div>
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+                            <i class="fa-solid fa-circle-info"></i> Optional: Select the radio button next to a choice to mark it as the correct answer.
+                        </div>
+                        <button type="button" id="add-opt-btn" onclick="addPollOption()" style="background: transparent; border: 1px dashed var(--primary-color); color: var(--primary-color); border-radius: 8px; padding: 6px; width: 100%; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;">
+                            <i class="fa-solid fa-plus"></i> Add Choice
+                        </button>
+                    </div>
+
+                    <div id="image-preview-container" style="display: none; margin-bottom: 12px; gap: 8px; flex-wrap: wrap;">
+                        <!-- Previews will be injected here -->
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid #f0f3f4;">
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label for="{{ form.images.id }}" style="cursor: pointer; color: var(--primary-color); font-size: 1.1rem; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s;" onmouseover="this.style.background='rgba(167, 139, 250, 0.1)'" onmouseout="this.style.background='transparent'" title="Media">
+                                <i class="fa-regular fa-image"></i>
+                            </label>
+                            {{ form.images(style="display: none;", onchange="previewImages(this)", multiple=True) }}
+                            
+                            <button type="button" onclick="toggleEmojiPicker(this, '{{ form.content.id }}')" style="cursor: pointer; color: var(--primary-color); font-size: 1.1rem; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s; background: transparent; border: none;" onmouseover="this.style.background='rgba(167, 139, 250, 0.1)'" onmouseout="this.style.background='transparent'" title="Emoji">
+                                <i class="fa-regular fa-face-smile"></i>
+                            </button>
+
+                            <button type="button" onclick="togglePoll()" style="cursor: pointer; color: var(--primary-color); font-size: 1.1rem; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s; background: transparent; border: none;" onmouseover="this.style.background='rgba(167, 139, 250, 0.1)'" onmouseout="this.style.background='transparent'" title="Poll">
+                                <i class="fa-solid fa-list-ul"></i>
+                            </button>
+                        </div>
+                    {{ form.submit(class="btn-primary", style="border-radius: 50px; padding: 8px 20px; font-weight: 700; opacity: 0.5;", id="submit-btn", disabled=True) }}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Feed -->
+    <div class="posts-list">
+        {% for post in posts %}
+            {{ post_card(post, current_user, character) }}
+        {% else %}
+            <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                <p style="font-size: 1.1rem;">No dits yet. Be the first to post!</p>
+            </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Paginator -->
+    {% if pagination.has_prev or pagination.has_next %}
+    <div style="display: flex; justify-content: space-between; padding: 20px; border-top: 1px solid var(--border-color);">
+        {% if pagination.has_prev %}
+            <a href="{{ url_for('index', page=pagination.prev_num) }}" class="btn-primary" style="border-radius: 50px;">&larr; Newer</a>
+        {% else %}
+            <div></div>
+        {% endif %}
+        {% if pagination.has_next %}
+            <a href="{{ url_for('index', page=pagination.next_num) }}" class="btn-primary" style="border-radius: 50px;">Older &rarr;</a>
+        {% else %}
+            <div></div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function togglePoll() {
+        const pollContainer = document.getElementById('poll-container');
+        const isVisible = pollContainer.style.display !== 'none';
+        pollContainer.style.display = isVisible ? 'none' : 'block';
+        if (isVisible) {
+            // Clear inputs when hiding
+            pollContainer.querySelectorAll('input').forEach(i => i.value = '');
+            // Reset visible options to 2
+            for(let i=3; i<=6; i++) {
+                document.getElementById('opt-group-' + i).style.display = 'none';
+            }
+            document.getElementById('add-opt-btn').style.display = 'block';
+            updateSubmitButton();
+        }
+    }
+
+    let activeOptions = 2;
+    function addPollOption() {
+        if (activeOptions < 6) {
+            activeOptions++;
+            document.getElementById('opt-group-' + activeOptions).style.display = 'flex';
+            if (activeOptions === 6) {
+                document.getElementById('add-opt-btn').style.display = 'none';
+            }
+        }
+    }
+
+    function previewImages(input) {
+        const container = document.getElementById('image-preview-container');
+        container.innerHTML = '';
+        if (input.files && input.files.length > 0) {
+            container.style.display = 'flex';
+            Array.from(input.files).forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const div = document.createElement('div');
+                    div.style.position = 'relative';
+                    div.style.width = 'calc(50% - 4px)';
+                    div.style.aspectRatio = '16/9';
+                    div.style.borderRadius = '12px';
+                    div.style.overflow = 'hidden';
+                    div.style.border = '1px solid var(--border-color)';
+                    
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    img.style.objectFit = 'cover';
+                    
+                    const btn = document.createElement('button');
+                    btn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                    btn.type = 'button';
+                    btn.style.position = 'absolute';
+                    btn.style.top = '5px';
+                    btn.style.right = '5px';
+                    btn.style.background = 'rgba(0,0,0,0.6)';
+                    btn.style.color = 'white';
+                    btn.style.border = 'none';
+                    btn.style.borderRadius = '50%';
+                    btn.style.width = '24px';
+                    btn.style.height = '24px';
+                    btn.style.cursor = 'pointer';
+                    btn.onclick = () => {
+                        // Note: Removing from FileList is tricky, usually we just clear all or hide.
+                        // For a simple implementation, we'll just clear the whole input for now.
+                        clearImages();
+                    };
+                    
+                    div.appendChild(img);
+                    div.appendChild(btn);
+                    container.appendChild(div);
+                }
+                reader.readAsDataURL(file);
+            });
+            updateSubmitButton();
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    function clearImages() {
+        document.getElementById('{{ form.images.id }}').value = '';
+        const container = document.getElementById('image-preview-container');
+        container.innerHTML = '';
+        container.style.display = 'none';
+        updateSubmitButton();
+    }
+
+    const contentInput = document.getElementById('{{ form.content.id }}');
+    const submitBtn = document.getElementById('submit-btn');
+
+    function updateSubmitButton() {
+        const hasContent = contentInput.value.trim().length > 0;
+        const hasImage = document.getElementById('{{ form.images.id }}').files.length > 0;
+        const hasPoll = document.getElementById('poll_option1').value.trim().length > 0 && 
+                        document.getElementById('poll_option2').value.trim().length > 0;
+        
+        if (hasContent || hasImage || hasPoll) {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = "1";
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = "0.5";
+        }
+    }
+
+    contentInput.addEventListener('input', updateSubmitButton);
+    // Add listeners to all poll options
+    for(let i=1; i<=6; i++) {
+        document.getElementById('poll_option' + i).addEventListener('input', updateSubmitButton);
+    }
+</script>
+{% endblock %}

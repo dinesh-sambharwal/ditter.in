@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% from "_macros.html" import character, post_card %}
+
+{% block view_title %}{{ user.username }}{% endblock %}
+
+{% block header %}{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-banner" {% if user.cover_filename %}
+        {% if user.cover_filename.startswith('gradients/') %}
+            style="background-image: url('{{ url_for('static', filename='images/' + user.cover_filename) }}'); background-size: cover; background-position: center;"
+        {% else %}
+            style="background-image: url('{{ url_for('static', filename='uploads/' + user.cover_filename) }}'); background-size: cover; background-position: center;"
+        {% endif %}
+    {% endif %}></div>
+    
+    <div class="profile-info-section">
+        <div class="profile-avatar-overlap">
+            {{ character(user, size=133, font_size='3rem') }}
+        </div>
+        
+        {% if user == current_user %}
+            <a href="{{ url_for('edit_profile') }}" class="profile-edit-btn">Edit profile</a>
+        {% else %}
+            <div style="position: absolute; top: 12px; right: 16px; display: flex; gap: 8px; align-items: center;">
+                <a href="{{ url_for('chat', username=user.username) }}" class="profile-edit-btn" style="position: static; width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%;"><i class="fa-solid fa-envelope"></i></a>
+                {% if user.is_private and not current_user.is_following(user) %}
+                    {% if current_user.has_requested_follow(user) %}
+                        <a href="{{ url_for('unfollow', username=user.username) }}" class="profile-edit-btn" style="position: static; background: var(--text-muted); color: white;">Requested</a>
+                    {% else %}
+                        <a href="{{ url_for('follow', username=user.username) }}" class="profile-edit-btn" style="position: static; background: var(--text-main); color: white; border: none;">Follow</a>
+                    {% endif %}
+                {% elif not current_user.is_following(user) %}
+                    <a href="{{ url_for('follow', username=user.username) }}" class="profile-edit-btn" style="position: static; background: var(--text-main); color: white; border: none;">Follow</a>
+                {% else %}
+                    <a href="{{ url_for('unfollow', username=user.username) }}" class="profile-edit-btn" style="position: static;" onmouseover="this.textContent='Unfollow'; this.style.color='var(--danger)'; this.style.borderColor='var(--danger)'" onmouseout="this.textContent='Following'; this.style.color='var(--text-main)'; this.style.borderColor='var(--border-color)'">Following</a>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <div class="profile-details">
+            <div>
+                <h2 style="margin: 0; font-size: 1.5rem; font-weight: 800;">{{ user.username }}</h2>
+                <div class="text-muted">@{{ user.username }}</div>
+            </div>
+
+            {% if user.bio %}
+                <div style="margin: 5px 0; font-size: 1rem; line-height: 1.4;">
+                    {{ user.bio }}
+                </div>
+            {% endif %}
+
+            <div class="text-muted" style="font-size: 0.95rem; display: flex; gap: 15px;">
+                <span><i class="fa-regular fa-calendar"></i> Joined {{ user.join_date.strftime('%B %Y') }}</span>
+            </div>
+
+            <div class="profile-stats-row">
+                <a href="{{ url_for('following', username=user.username) }}" style="text-decoration: none; color: inherit;">
+                    <strong>{{ user.followed.count() }}</strong> <span class="text-muted">Following</span>
+                </a>
+                <a href="{{ url_for('followers', username=user.username) }}" style="text-decoration: none; color: inherit;">
+                    <strong>{{ user.followers.count() }}</strong> <span class="text-muted">Followers</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {% if user == current_user and current_user.pending_requests.count() > 0 %}
+        <div style="padding: 16px; border-bottom: 2px solid var(--primary-color); background: rgba(99, 102, 241, 0.05);">
+            <h4 style="margin: 0 0 12px 0;">Follow Requests</h4>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                {% for req_user in current_user.pending_requests %}
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            {{ character(req_user, size=32) }}
+                            <span><strong>{{ req_user.username }}</strong> <span class="text-muted">@{{ req_user.username }}</span></span>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <a href="{{ url_for('approve', username=req_user.username) }}" class="btn-primary" style="padding: 6px 16px; font-size: 0.9rem; border-radius: 50px;">Approve</a>
+                            <a href="{{ url_for('deny', username=req_user.username) }}" class="btn-primary" style="background: transparent; color: var(--danger) !important; border: 1px solid var(--border-color); padding: 6px 16px; font-size: 0.9rem; border-radius: 50px;">Deny</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Tabs -->
+    <div style="display: flex; border-bottom: 1px solid var(--border-color);">
+        <a href="{{ url_for('user', username=user.username, tab='dits') }}" 
+           style="flex: 1; text-align: center; padding: 15px; font-weight: {{ '700' if tab == 'dits' else '600' }}; border-bottom: {{ '4px solid var(--primary-color)' if tab == 'dits' else 'none' }}; color: {{ 'var(--text-main)' if tab == 'dits' else 'var(--text-muted)' }}; text-decoration: none; transition: background 0.2s;"
+           onmouseover="this.style.background='rgba(99, 102, 241, 0.05)'"
+           onmouseout="this.style.background='transparent'">
+           Dits
+        </a>
+        <a href="{{ url_for('user', username=user.username, tab='media') }}" 
+           style="flex: 1; text-align: center; padding: 15px; font-weight: {{ '700' if tab == 'media' else '600' }}; border-bottom: {{ '4px solid var(--primary-color)' if tab == 'media' else 'none' }}; color: {{ 'var(--text-main)' if tab == 'media' else 'var(--text-muted)' }}; text-decoration: none; transition: background 0.2s;"
+           onmouseover="this.style.background='rgba(99, 102, 241, 0.05)'"
+           onmouseout="this.style.background='transparent'">
+           Media
+        </a>
+        <a href="{{ url_for('user', username=user.username, tab='likes') }}" 
+           style="flex: 1; text-align: center; padding: 15px; font-weight: {{ '700' if tab == 'likes' else '600' }}; border-bottom: {{ '4px solid var(--primary-color)' if tab == 'likes' else 'none' }}; color: {{ 'var(--text-main)' if tab == 'likes' else 'var(--text-muted)' }}; text-decoration: none; transition: background 0.2s;"
+           onmouseover="this.style.background='rgba(99, 102, 241, 0.05)'"
+           onmouseout="this.style.background='transparent'">
+           Likes
+        </a>
+    </div>
+
+    {% if user.is_private and user != current_user and not current_user.is_following(user) %}
+        <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+            <i class="fa-solid fa-lock" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.5;"></i>
+            <h3 style="margin: 0; color: var(--text-main); font-size: 1.5rem;">These Dits are protected</h3>
+            <p>Only confirmed followers can see @{{ user.username }}'s Dits.</p>
+        </div>
+    {% else %}
+        <div class="posts-list">
+            {% for post in posts %}
+                {{ post_card(post, current_user, character) }}
+            {% else %}
+                <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                    {% if tab == 'media' %}
+                        <p style="font-size: 1.1rem;">@{{ user.username }} hasn't shared any media yet.</p>
+                    {% elif tab == 'likes' %}
+                        <p style="font-size: 1.1rem;">@{{ user.username }} hasn't liked any dits yet.</p>
+                    {% else %}
+                        <p style="font-size: 1.1rem;">@{{ user.username }} hasn't posted anything yet.</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

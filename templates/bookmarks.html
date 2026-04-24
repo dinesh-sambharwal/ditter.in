@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "_macros.html" import post_card, character %}
+
+{% block view_title %}Bookmarks{% endblock %}
+
+{% block content %}
+<div class="feed-container">
+    {% if posts %}
+        {% for post in posts %}
+            {{ post_card(post, current_user, character) }}
+        {% endfor %}
+        
+        {% if pagination and pagination.pages > 1 %}
+        <div class="pagination" style="display: flex; justify-content: center; gap: 12px; padding: 20px;">
+            {% if pagination.has_prev %}
+                <a href="{{ url_for('bookmarks', page=pagination.prev_num) }}" class="btn-secondary">Newer</a>
+            {% endif %}
+            {% if pagination.has_next %}
+                <a href="{{ url_for('bookmarks', page=pagination.next_num) }}" class="btn-secondary">Older</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    {% else %}
+        <div style="padding: 80px 40px; text-align: center; color: var(--text-muted);">
+            <div style="width: 120px; height: 120px; background: var(--primary-soft); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px;">
+                <i class="fa-solid fa-bookmark" style="font-size: 3rem; color: var(--primary-color); opacity: 0.5;"></i>
+            </div>
+            <h2 style="color: var(--text-main); margin-bottom: 12px; font-weight: 800;">Save Dits for later</h2>
+            <p style="max-width: 320px; margin: 0 auto; line-height: 1.5;">Don't let the good ones get away! Bookmark them to easily find them again. Only you can see your bookmarks.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,219 @@
+{% macro character(user, size=45, font_size='1.1rem', clickable=True) %}
+{% set char_url = user | character_url %}
+{% if clickable %}
+<a href="{{ url_for('user', username=user.username) }}" style="text-decoration: none; display: inline-block; width: fit-content; border-radius: 50%;" onclick="event.stopPropagation();">
+{% endif %}
+{% if char_url %}
+<img src="{{ char_url }}" alt="{{ user.username }}" style="width: {{ size }}px; height: {{ size }}px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+{% else %}
+<div style="width: {{ size }}px; height: {{ size }}px; border-radius: 50%; background: linear-gradient(135deg, #ddd6fe, #a7f3d0); display: flex; justify-content: center; align-items: center; color: #5b21b6; font-weight: 800; font-size: {{ font_size }}; flex-shrink: 0; box-shadow: inset 0 2px 4px rgba(255,255,255,0.5); border: 2px solid white;">
+    {{ user.username[0] | upper }}
+</div>
+{% endif %}
+{% if clickable %}
+</a>
+{% endif %}
+{% endmacro %}
+
+{# Macro for a single post/dit. Usage: {{ post_card(post, current_user, character) }} #}
+{% macro post_card(post, current_user, character) %}
+{% if post.original_post %}
+    {% if post.content %}
+        {# This is a Quote Dit #}
+        {% set display_post = post %}
+        {% set is_quote = True %}
+        {% set quoted_post = post.original_post %}
+        <div class="post-prefix">
+            <i class="fa-solid fa-quote-left"></i> Quoted by {{ post.author.username }}
+        </div>
+    {% else %}
+        {# This is a pure Re-dit #}
+        {% set display_post = post.original_post %}
+        {% set is_quote = False %}
+        <div class="post-prefix">
+            <i class="fa-solid fa-retweet"></i> {{ post.author.username }} re-ditted
+        </div>
+    {% endif %}
+{% else %}
+    {% set display_post = post %}
+    {% set is_quote = False %}
+{% endif %}
+
+<div class="post-card" onclick="if(!event.target.closest('a, button')) window.location.href='{{ url_for('view_post', post_id=display_post.id) }}'">
+    <div class="post-aside">
+        {{ character(display_post.author, size=48) }}
+    </div>
+    <div class="post-main">
+        <div class="post-header" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+            <div class="post-user-info" style="display: flex; align-items: center; flex: 1;">
+                <span class="post-display-name">
+                    <a href="{{ url_for('user', username=display_post.author.username) }}" onclick="event.stopPropagation();">{{ display_post.author.username }}</a>
+                </span>
+                {% if display_post.author.is_private %}
+                    <i class="fa-solid fa-lock post-lock-icon" style="margin: 0 4px;"></i>
+                {% endif %}
+                <span class="post-username-meta">@{{ display_post.author.username }} &middot; {{ display_post.timestamp.strftime('%B %d') }}</span>
+                {% if display_post.is_pinned %}
+                <span style="margin-left: 8px; color: var(--primary-color); font-size: 0.8rem; font-weight: 700; display: inline-flex; align-items: center;"><i class="fa-solid fa-thumbtack" style="margin-right: 4px; transform: rotate(45deg);"></i> Pinned</span>
+                {% endif %}
+            </div>
+
+            <!-- Three Dot Menu at Top-Right of content -->
+            <div class="dropdown" style="position: relative; display: inline-block;">
+                <i class="fa-solid fa-ellipsis dropdown-toggle" style="cursor: pointer; padding: 4px; color: var(--text-muted); transition: color 0.2s;" onclick="event.stopPropagation(); document.querySelectorAll('.post-dropdown').forEach(d => { if(d !== this.nextElementSibling) d.style.display = 'none'; }); this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'none' ? 'block' : 'none';" onmouseover="this.style.color='var(--primary-color)'" onmouseout="this.style.color='var(--text-muted)'" title="Manage Dit"></i>
+                <div class="dropdown-menu post-dropdown" style="display: none; position: absolute; right: 0; top: 100%; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 6px 0; z-index: 100; min-width: 140px; box-shadow: var(--glass-shadow); backdrop-filter: var(--glass-blur); overflow: hidden;">
+                    {% if display_post.author == current_user %}
+                    <form action="{{ url_for('delete_post', post_id=display_post.id) }}" method="post" style="margin: 0;" onsubmit="return confirm('Delete this dit?');">
+                        <button type="submit" class="dropdown-item" style="width: 100%; text-align: left; background: none; border: none; padding: 10px 16px; color: var(--danger); outline: none; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='rgba(248,113,113,0.1)'" onmouseout="this.style.background='none'" onclick="event.stopPropagation();">
+                            <i class="fa-regular fa-trash-can" style="margin-right: 8px;"></i> Delete
+                        </button>
+                    </form>
+                    <form action="{{ url_for('pin_post', post_id=display_post.id) }}" method="post" style="margin: 0;">
+                        <button type="submit" class="dropdown-item" style="width: 100%; text-align: left; background: none; border: none; padding: 10px 16px; color: var(--text-main); outline: none; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--primary-soft)'" onmouseout="this.style.background='none'" onclick="event.stopPropagation();">
+                            <i class="fa-solid fa-thumbtack" style="margin-right: 8px;"></i> {% if display_post.is_pinned %}Unpin{% else %}Pin{% endif %}
+                        </button>
+                    </form>
+                    {% else %}
+                    <button class="dropdown-item" onclick="event.stopPropagation(); window.location.href='{{ url_for('report', target_type='post', target_id=display_post.id) }}'" style="width: 100%; text-align: left; background: none; border: none; padding: 10px 16px; color: var(--warning); outline: none; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='rgba(251,191,36,0.1)'" onmouseout="this.style.background='none'">
+                        <i class="fa-solid fa-flag" style="margin-right: 8px;"></i> Report
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="post-content">
+            {% if is_quote %}
+                <div style="margin-bottom: 12px;">{{ post.content | linkify_mentions | safe }}</div>
+                <div class="quoted-container" onclick="event.stopPropagation(); window.location.href='{{ url_for('view_post', post_id=quoted_post.id) }}'">
+                    <div class="quoted-header">
+                        {{ character(quoted_post.author, size=20, font_size='0.6rem', clickable=False) }}
+                        <span class="quoted-user">@{{ quoted_post.author.username }}</span>
+                        <span class="quoted-meta">&middot; {{ quoted_post.timestamp.strftime('%b %d') }}</span>
+                    </div>
+                    <div class="quoted-body">
+                        {{ quoted_post.content | linkify_mentions | safe }}
+                    </div>
+                </div>
+            {% else %}
+                <div style="margin-bottom: 12px;">{{ display_post.content | linkify_mentions | safe }}</div>
+            {% endif %}
+
+            {% if display_post.images.count() > 0 %}
+                <div class="post-images-grid" style="margin-bottom: 12px; display: grid; grid-template-columns: repeat({{ 2 if display_post.images.count() > 1 else 1 }}, 1fr); gap: 4px; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color);">
+                    {% for img in display_post.images %}
+                        <div style="aspect-ratio: {{ '1.91/1' if display_post.images.count() == 1 else '1/1' }}; overflow: hidden; background: rgba(0,0,0,0.05);">
+                            <img src="{{ url_for('static', filename='uploads/' + img.filename) }}" alt="Post image" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onclick="window.open(this.src)">
+                        </div>
+                    {% endfor %}
+                </div>
+            {% elif display_post.image_filename %}
+                {# Fallback for legacy data not yet migrated or just in case #}
+                <div class="post-image-container" style="margin-bottom: 12px;">
+                    <img src="{{ url_for('static', filename='uploads/' + display_post.image_filename) }}" alt="Post image" style="border-radius: 16px; border: 1px solid var(--border-color); cursor: pointer;" onclick="window.open(this.src)">
+                </div>
+            {% endif %}
+
+            {% if display_post.poll %}
+                <div class="poll-wrapper" onclick="event.stopPropagation();">
+                    {% if display_post.poll.question %}
+                        <div class="poll-question" style="font-weight: 700; margin-bottom: 12px; font-size: 1rem; color: var(--text-main);">
+                            {{ display_post.poll.question }}
+                        </div>
+                    {% endif %}
+                    {% set user_vote_obj = None %}
+                    {% if current_user.is_authenticated %}
+                        {% set user_vote_obj = current_user.get_poll_vote(display_post.poll.id) %}
+                    {% endif %}
+                    {% set user_voted = user_vote_obj is not none %}
+
+                    {% set ns = namespace(total_votes=0) %}
+                    {% for opt in display_post.poll.options %}
+                        {% set ns.total_votes = ns.total_votes + opt.votes.count() %}
+                    {% endfor %}
+                    {% set total_votes = ns.total_votes %}
+                    
+                    {% for option in display_post.poll.options %}
+                        {% set vote_count = option.votes.count() %}
+                        {% set percentage = (vote_count / total_votes * 100) | round(1) if total_votes > 0 else 0 %}
+                        {% set is_selected = user_voted and user_vote_obj.option_id == option.id %}
+                        {% set is_correct = option.is_correct %}
+                        {% set user_got_it_right = user_voted and user_vote_obj.option_id == option.id and is_correct %}
+                        {% set user_got_it_wrong = user_voted and user_vote_obj.option_id == option.id and not is_correct %}
+                        
+                        <div class="poll-option-container {% if is_selected %}selected{% endif %}" 
+                             style="{% if is_selected %}border-color: {{ 'var(--success-color)' if user_got_it_right else 'var(--danger-color)' if user_got_it_wrong else 'var(--primary-color)' }}; background: {{ 'rgba(34, 197, 94, 0.1)' if user_got_it_right else 'rgba(239, 68, 68, 0.1)' if user_got_it_wrong else 'rgba(167, 139, 250, 0.1)' }};{% endif %} 
+                                    {% if user_voted and is_correct and not is_selected %}border: 1px dashed var(--success-color);{% endif %}">
+                            
+                            {% if user_voted %}
+                                <div class="poll-option-fill" style="width: {{ percentage }}%; 
+                                    {% if is_selected %}background: {{ 'rgba(34, 197, 94, 0.25)' if user_got_it_right else 'rgba(239, 68, 68, 0.25)' if user_got_it_wrong else 'rgba(167, 139, 250, 0.25)' }};{% endif %}"></div>
+                                <div class="poll-option-content" style="width: 100%; display: flex; justify-content: space-between; z-index: 2; font-weight: 600;">
+                                    <span style="display: flex; align-items: center; gap: 8px;">
+                                        {{ option.text }}
+                                        {% if is_correct %}
+                                            <i class="fa-solid fa-check" style="color: var(--success-color);" title="Correct Answer"></i>
+                                            <span style="font-size: 0.7rem; color: var(--success-color); font-weight: 700;">CORRECT</span>
+                                        {% elif is_selected and not is_correct %}
+                                            <i class="fa-solid fa-xmark" style="color: var(--danger-color);" title="Your Answer (Incorrect)"></i>
+                                        {% endif %}
+                                    </span>
+                                    <span>{% if total_votes > 0 %}{{ percentage }}%{% endif %}</span>
+                                </div>
+                            {% else %}
+                                <form action="{{ url_for('vote', option_id=option.id) }}" method="post" style="width: 100%;">
+                                    <button type="submit" class="poll-vote-btn" style="width: 100%; border: none; background: transparent; text-align: left; padding: 0; font: inherit; cursor: pointer; color: inherit; display: flex; justify-content: space-between; height: 42px; align-items: center;">
+                                        <span>{{ option.text }}</span>
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <div class="poll-stats" style="margin-top: 8px; font-size: 0.85rem; color: var(--text-muted);">
+                        {{ total_votes }} votes &middot; {% if user_voted %}Voted{% else %}Click to vote{% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="post-actions" onclick="event.stopPropagation();">
+            <a href="{{ url_for('view_post', post_id=display_post.id) }}" class="action-btn comment-btn">
+                <i class="fa-regular fa-comment"></i>
+                <span>{{ display_post.comments.count() }}</span>
+            </a>
+            
+            <a href="{{ url_for('quote_dit', post_id=display_post.id) }}" class="action-btn quote-btn">
+                <i class="fa-solid fa-pen-to-square"></i>
+            </a>
+
+            <form action="{{ url_for('redit', post_id=display_post.id) }}" method="post" style="display: contents;">
+                <button type="submit" class="action-btn redit-btn {{ 'active' if current_user.has_reditted(display_post) }}">
+                    <i class="fa-solid fa-retweet"></i>
+                    <span>{{ display_post.redits.count() }}</span>
+                </button>
+            </form>
+
+            <form action="{{ url_for('unlike' if current_user.has_liked(display_post) else 'like', post_id=display_post.id) }}" method="post" style="display: contents;">
+                <button type="submit" class="action-btn like-btn {{ 'active' if current_user.has_liked(display_post) }}">
+                    {% if current_user.has_liked(display_post) %}
+                        <i class="fa-solid fa-heart"></i>
+                    {% else %}
+                        <i class="fa-regular fa-heart"></i>
+                    {% endif %}
+                    <span>{{ display_post.liked_by.count() }}</span>
+                </button>
+            </form>
+
+            <form action="{{ url_for('unbookmark' if current_user.has_bookmarked(display_post) else 'bookmark', post_id=display_post.id) }}" method="post" style="display: contents;">
+                <button type="submit" class="action-btn bookmark-btn {{ 'active' if current_user.has_bookmarked(display_post) }}">
+                    {% if current_user.has_bookmarked(display_post) %}
+                        <i class="fa-solid fa-bookmark"></i>
+                    {% else %}
+                        <i class="fa-regular fa-bookmark"></i>
+                    {% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endmacro %}

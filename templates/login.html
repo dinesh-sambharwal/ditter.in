@@ -1,0 +1,493 @@
+{% extends "base.html" %}
+{% block title %}Log in / Ditter{% endblock %}
+
+{% block content %}
+<!-- Body overrides injected via style tag inside content - the base template renders this -->
+<style>
+html, body {
+    background: #05070f !important;
+    overflow: hidden !important;
+}
+.app-container.unauth {
+    background: #05070f !important;
+    display: block !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+main.main-content.unauth {
+    all: unset !important;
+    display: block !important;
+    width: 100vw !important;
+}
+main.main-content.unauth > div {
+    display: none !important;
+}
+main.main-content.unauth > div:last-child {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+</style>
+
+<div id="login-universe">
+
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="grid-overlay"></div>
+
+    <!-- Top bar removed - logo moved to hero section -->
+
+    <!-- Main stage -->
+    <div class="login-stage">
+
+        <!-- Left hero -->
+        <div class="hero-side">
+        <!-- Logo + brand name before pill -->
+        <div class="hero-logo">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Ditter">
+            <span class="hero-brand-name">Ditter</span>
+        </div>
+        <div class="hero-pill">✦ The Social Space</div>
+            <h1 class="hero-title">Think it.<br><span class="gradient-word">Dit</span> it.</h1>
+            <p class="hero-sub">Share your thoughts with <strong>{{ user_count }}</strong> people already on Ditter.</p>
+            <div class="floating-cards">
+                <div class="quote-card qc1">
+                    <div class="qc-avatar" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">D</div>
+                    <div><div class="qc-name">@dinesh</div><div class="qc-text">Just joined Ditter 🚀</div></div>
+                </div>
+                <div class="quote-card qc2">
+                    <div class="qc-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">A</div>
+                    <div><div class="qc-name">@alex</div><div class="qc-text">Loving this platform 💬</div></div>
+                </div>
+                <div class="quote-card qc3">
+                    <div class="qc-avatar" style="background:linear-gradient(135deg,#10b981,#3b82f6)">M</div>
+                    <div><div class="qc-name">@maya</div><div class="qc-text">Real thoughts, real people ✨</div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right form -->
+        <div class="form-side">
+            <div class="form-card">
+                <div class="form-glow"></div>
+                <h2 class="form-title">Welcome back</h2>
+                <p class="form-sub">Sign in to your account</p>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="flash-box">
+                    {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">
+                        <i class="fa-solid {{ 'fa-circle-check' if category == 'success' else 'fa-triangle-exclamation' }}"></i>
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                <form method="POST" action="" class="login-form">
+                    {{ form.hidden_tag() }}
+                    <div class="field-group">
+                        <label>{{ form.username_or_email.label.text }}</label>
+                        <div class="field-wrap">
+                            <i class="fa-solid fa-user field-icon"></i>
+                            {{ form.username_or_email(placeholder="Username or Email", class="field-input") }}
+                        </div>
+                        {% if form.username_or_email.errors %}
+                            <span class="field-error">{{ form.username_or_email.errors[0] }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="field-group">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <label>{{ form.password.label.text }}</label>
+                            <a href="{{ url_for('reset_password_request') }}" class="forgot-link">Forgot password?</a>
+                        </div>
+                        <div class="field-wrap">
+                            <i class="fa-solid fa-lock field-icon"></i>
+                            {{ form.password(placeholder="••••••••", class="field-input", id="pwd-input") }}
+                            <button type="button" class="eye-btn" id="eye-toggle">
+                                <i class="fa-solid fa-eye-slash" id="eye-icon"></i>
+                            </button>
+                        </div>
+                        {% if form.password.errors %}
+                            <span class="field-error">{{ form.password.errors[0] }}</span>
+                        {% endif %}
+                    </div>
+                    <button type="submit" class="btn-submit">
+                        <span>Log In</span>
+                        <i class="fa-solid fa-arrow-right-long"></i>
+                    </button>
+                </form>
+
+                <div class="form-footer">
+                    New here? <a href="{{ url_for('register') }}">Create an account</a>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- end .login-stage -->
+</div><!-- end #login-universe -->
+
+<style>
+/* ── Universe: full screen fixed ── */
+#login-universe {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #05070f;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Outfit', 'Inter', 'Segoe UI', sans-serif;
+    z-index: 10000;
+    overflow: hidden;
+}
+
+#particle-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 1;
+    animation: float-orb 12s ease-in-out infinite alternate;
+}
+.orb-1 { width:500px;height:500px;background:radial-gradient(circle,rgba(99,102,241,.4),transparent 70%);top:-150px;left:-150px;animation-delay:0s; }
+.orb-2 { width:400px;height:400px;background:radial-gradient(circle,rgba(139,92,246,.35),transparent 70%);bottom:-100px;right:-100px;animation-delay:-4s; }
+.orb-3 { width:300px;height:300px;background:radial-gradient(circle,rgba(16,185,129,.2),transparent 70%);top:50%;left:40%;animation-delay:-8s; }
+
+@keyframes float-orb {
+    from { transform:translate(0,0) scale(1); }
+    to   { transform:translate(30px,40px) scale(1.1); }
+}
+
+.grid-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(99,102,241,.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,.06) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+}
+
+/* ── Hero logo ── */
+.hero-logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+.hero-logo img {
+    width: 58px;
+    height: 58px;
+    border-radius: 14px;
+    object-fit: contain;
+    background: rgba(255,255,255,0.08);
+    padding: 7px;
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    flex-shrink: 0;
+}
+.hero-brand-name {
+    font-size: 2rem;
+    font-weight: 900;
+    color: white;
+    letter-spacing: -1px;
+}
+
+/* ── Stage ── */
+.login-stage {
+    position: relative;
+    z-index: 10;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 60px;
+    padding: 0 60px 10px;
+    overflow: hidden;
+}
+
+/* ── Hero ── */
+.hero-side {
+    flex: 1;
+    max-width: 420px;
+    color: white;
+    animation: slide-left .7s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes slide-left {
+    from { opacity:0; transform:translateX(-30px); }
+    to   { opacity:1; transform:translateX(0); }
+}
+
+.hero-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 14px;
+    background: rgba(99,102,241,.15);
+    border: 1px solid rgba(99,102,241,.3);
+    border-radius: 100px;
+    font-size: .73rem;
+    font-weight: 700;
+    color: #a5b4fc;
+    letter-spacing: .5px;
+    margin-bottom: 16px;
+}
+
+.hero-title {
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -2px;
+    margin: 0 0 14px;
+    color: white;
+}
+.gradient-word {
+    background: linear-gradient(135deg, #6366f1, #a78bfa, #06b6d4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-sub {
+    font-size: .95rem;
+    color: rgba(255,255,255,.5);
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+.hero-sub strong { color: #a5b4fc; font-weight: 800; }
+
+.floating-cards { display: flex; flex-direction: column; gap: 10px; }
+.quote-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 15px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    backdrop-filter: blur(8px);
+    transition: transform .3s;
+}
+.quote-card:hover { transform: translateX(6px); }
+.qc1 { animation: fc 6s ease-in-out infinite; }
+.qc2 { animation: fc 6s ease-in-out infinite 1.5s; }
+.qc3 { animation: fc 6s ease-in-out infinite 3s; }
+@keyframes fc {
+    0%,100% { transform:translateY(0); }
+    50%      { transform:translateY(-4px); }
+}
+.qc-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; color: white; font-size: .85rem; flex-shrink: 0;
+}
+.qc-name { font-size: .73rem; font-weight: 800; color: rgba(255,255,255,.85); }
+.qc-text { font-size: .78rem; color: rgba(255,255,255,.42); margin-top: 1px; }
+
+/* ── Form side ── */
+.form-side {
+    flex-shrink: 0;
+    animation: slide-right .7s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes slide-right {
+    from { opacity:0; transform:translateX(30px); }
+    to   { opacity:1; transform:translateX(0); }
+}
+
+.form-card {
+    position: relative;
+    background: rgba(255,255,255,.055);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 26px;
+    padding: 32px 30px 26px;
+    width: 350px;
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    box-shadow: 0 20px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.1);
+    overflow: hidden;
+}
+
+.form-glow {
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle,rgba(99,102,241,.3),transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    animation: glow 4s ease-in-out infinite;
+}
+@keyframes glow {
+    0%,100% { opacity:.6; transform:scale(1); }
+    50%      { opacity:1; transform:scale(1.15); }
+}
+
+.form-title { position:relative;z-index:1;font-size:1.6rem;font-weight:800;color:white;margin:0 0 4px;letter-spacing:-.5px; }
+.form-sub   { position:relative;z-index:1;color:rgba(255,255,255,.35);font-size:.82rem;margin-bottom:20px; }
+
+/* Flash */
+.flash-box { position:relative;z-index:1;display:flex;flex-direction:column;gap:7px;margin-bottom:14px; }
+.flash { padding:9px 13px;border-radius:10px;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:8px; }
+.flash-danger,.flash-warning,.flash-error { background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#fca5a5; }
+.flash-success { background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:#6ee7b7; }
+.flash-info { background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);color:#a5b4fc; }
+
+/* Fields */
+.login-form { position:relative;z-index:1;display:flex;flex-direction:column;gap:14px; }
+.field-group { display:flex;flex-direction:column;gap:6px; }
+.field-group label { font-size:.75rem;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.3px; }
+.field-wrap { position:relative;display:flex;align-items:center; }
+.field-icon { position:absolute;left:13px;color:rgba(255,255,255,.25);font-size:.85rem;pointer-events:none;transition:color .3s;z-index:2; }
+.field-input {
+    width:100%;box-sizing:border-box;
+    padding: 12px 38px 12px 40px;
+    background: rgba(255,255,255,.06);
+    border: 1.5px solid rgba(255,255,255,.1);
+    border-radius: 12px;
+    color: white; font-size: .88rem; font-weight: 500;
+    transition: all .3s ease; outline: none;
+}
+.field-input::placeholder { color:rgba(255,255,255,.18); }
+.field-input:focus {
+    border-color: rgba(99,102,241,.7);
+    background: rgba(99,102,241,.08);
+    box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+}
+.field-wrap:focus-within .field-icon { color:#818cf8; }
+
+.eye-btn {
+    position:absolute;right:11px;background:none;border:none;
+    color:rgba(255,255,255,.25);cursor:pointer;padding:4px;font-size:.82rem;transition:color .2s;
+}
+.eye-btn:hover { color:rgba(255,255,255,.6); }
+.field-error { color:#fca5a5;font-size:.72rem;font-weight:600; }
+.forgot-link { font-size:.73rem;color:rgba(255,255,255,.28);text-decoration:none;font-weight:600;transition:color .2s; }
+.forgot-link:hover { color:#818cf8; }
+
+/* Submit */
+.btn-submit {
+    width:100%;padding:13px;border:none;border-radius:13px;
+    background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 50%,#06b6d4 100%);
+    background-size:200% 200%;
+    color:white;font-size:.92rem;font-weight:800;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    box-shadow:0 6px 24px rgba(99,102,241,.4);
+    transition:all .3s cubic-bezier(.34,1.56,.64,1);
+    animation:grad-shift 4s ease infinite;
+    margin-top:4px;position:relative;z-index:1;
+}
+@keyframes grad-shift {
+    0%  { background-position:0% 50%; }
+    50% { background-position:100% 50%; }
+    100%{ background-position:0% 50%; }
+}
+.btn-submit:hover { transform:translateY(-3px) scale(1.02);box-shadow:0 12px 32px rgba(99,102,241,.5); }
+.btn-submit:active { transform:translateY(-1px) scale(.99); }
+.btn-submit i { transition:transform .3s; }
+.btn-submit:hover i { transform:translateX(4px); }
+
+.form-footer { position:relative;z-index:1;text-align:center;margin-top:18px;font-size:.8rem;color:rgba(255,255,255,.28); }
+.form-footer a { color:#a5b4fc;font-weight:700;text-decoration:none;transition:color .2s; }
+.form-footer a:hover { color:white; }
+
+/* ── Responsive ── */
+@media (max-width: 820px) {
+    .hero-side { display:none; }
+    .login-stage { padding:10px 20px; }
+    .form-card { width:min(340px, 90vw); }
+}
+@media (max-height: 600px) {
+    .login-topbar { padding:8px 30px; }
+    .hero-pill { margin-bottom:10px; }
+    .hero-sub { margin-bottom:14px; }
+    .floating-cards .qc3 { display:none; }
+    .form-card { padding:22px 24px 18px; }
+    .login-form { gap:11px; }
+    .form-sub { margin-bottom:14px; }
+    .form-footer { margin-top:12px; }
+}
+</style>
+
+<script>
+(function() {
+    const canvas = document.getElementById('particle-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let W, H, pts = [];
+    function resize() {
+        W = canvas.width  = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    class P {
+        constructor() { this.r(); }
+        r() {
+            this.x  = Math.random()*W; this.y=Math.random()*H;
+            this.sz = Math.random()*1.6+.3;
+            this.vx = (Math.random()-.5)*.28; this.vy=(Math.random()-.5)*.28;
+            this.a  = Math.random()*.45+.1;
+        }
+        up() {
+            this.x+=this.vx; this.y+=this.vy;
+            if(this.x<0||this.x>W) this.vx*=-1;
+            if(this.y<0||this.y>H) this.vy*=-1;
+        }
+        dr() {
+            ctx.beginPath();
+            ctx.arc(this.x,this.y,this.sz,0,Math.PI*2);
+            ctx.fillStyle=`rgba(165,180,252,${this.a})`;
+            ctx.fill();
+        }
+    }
+    for(let i=0;i<100;i++) pts.push(new P());
+    function loop() {
+        ctx.clearRect(0,0,W,H);
+        pts.forEach(p=>{ p.up(); p.dr(); });
+        for(let i=0;i<pts.length;i++) {
+            for(let j=i+1;j<pts.length;j++) {
+                const dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y;
+                const d=Math.sqrt(dx*dx+dy*dy);
+                if(d<100) {
+                    ctx.beginPath();
+                    ctx.moveTo(pts[i].x,pts[i].y);
+                    ctx.lineTo(pts[j].x,pts[j].y);
+                    ctx.strokeStyle=`rgba(99,102,241,${.15*(1-d/100)})`;
+                    ctx.lineWidth=.5; ctx.stroke();
+                }
+            }
+        }
+        requestAnimationFrame(loop);
+    }
+    loop();
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+    const eyeBtn=document.getElementById('eye-toggle');
+    const pwdIn=document.getElementById('pwd-input');
+    const eyeIc=document.getElementById('eye-icon');
+    if(eyeBtn) {
+        eyeBtn.addEventListener('click', ()=>{
+            if(pwdIn.type==='password'){ pwdIn.type='text'; eyeIc.className='fa-solid fa-eye'; }
+            else { pwdIn.type='password'; eyeIc.className='fa-solid fa-eye-slash'; }
+        });
+    }
+    // Card tilt removed
+});
+</script>
+{% endblock %}

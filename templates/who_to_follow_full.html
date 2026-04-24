@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="main-content">
+    <div class="view-header">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <a href="javascript:history.back()" style="color: var(--text-main); text-decoration: none; padding: 10px; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; transition: background 0.2s;" onmouseover="this.style.background='var(--primary-soft)'" onmouseout="this.style.background='transparent'">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            <h2>Who to follow</h2>
+        </div>
+    </div>
+
+    <div style="padding: 20px;">
+        <div class="glass-card" style="padding: 0; border: none; background: transparent; backdrop-filter: none; box-shadow: none;">
+            {% if suggestions %}
+                {% for sug_user in suggestions %}
+                    <div class="post-card" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-color); cursor: default;">
+                        <a href="{{ url_for('user', username=sug_user.username) }}" style="display: flex; gap: 15px; align-items: center; text-decoration: none; color: inherit; flex: 1; min-width: 0;">
+                            {{ character(sug_user, size=52, clickable=False) }}
+                            <div style="min-width: 0;">
+                                <div style="font-weight: 800; font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-main);">{{ sug_user.username }}</div>
+                                <div style="font-size: 0.95rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">@{{ sug_user.username }}</div>
+                                {% if sug_user.bio %}
+                                    <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{{ sug_user.bio }}</div>
+                                {% endif %}
+                            </div>
+                        </a>
+                        <a href="{{ url_for('follow', username=sug_user.username) }}" class="btn-primary" style="padding: 10px 24px; font-weight: 700; border-radius: 50px; text-decoration: none;">Follow</a>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    <i class="fa-solid fa-users" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.2;"></i>
+                    <p>No new suggestions at the moment. Check back later!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

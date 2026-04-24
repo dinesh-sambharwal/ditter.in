@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% from "_macros.html" import character %}
+
+{% block view_title %}
+<div style="display: flex; align-items: center; gap: 16px;">
+    <a href="{{ url_for('messages') }}" style="color: inherit; text-decoration: none; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s;" onmouseover="this.style.background='var(--primary-soft)'" onmouseout="this.style.background='transparent'"><i class="fa-solid fa-arrow-left"></i></a>
+    {{ character(recipient, size=36) }}
+    <div style="display: flex; flex-direction: column; line-height: 1.2;">
+        <span style="font-weight: 800; font-size: 1.15rem;">{{ recipient.username }}</span>
+        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 400;">@{{ recipient.username }}</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="chat-wrapper" style="display: flex; flex-direction: column; height: calc(100vh - 120px); max-height: 800px; background: var(--card-bg); backdrop-filter: var(--glass-blur); border-radius: 24px; border: 1px solid var(--glass-border); overflow: hidden; margin-top: 8px;">
+    <div class="chat-history" id="chat-history" style="flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth;">
+        {% for msg in messages %}
+            {% set is_mine = msg.sender_id == current_user.id %}
+            <div style="display: flex; flex-direction: column; align-items: {{ 'flex-end' if is_mine else 'flex-start' }};">
+                <div style="max-width: 80%; padding: 12px 18px; border-radius: 20px; position: relative; {{ 'border-bottom-right-radius: 4px; background: linear-gradient(135deg, var(--primary-color), #8B5CF6); color: white; box-shadow: 0 4px 15px rgba(167, 139, 250, 0.2);' if is_mine else 'border-bottom-left-radius: 4px; background: rgba(255,255,255,0.7); border: 1px solid var(--glass-border); color: var(--text-main);' }}">
+                    <div style="font-size: 1rem; line-height: 1.5; white-space: pre-wrap;">{{ msg.body }}</div>
+                    {% if msg.images.count() > 0 %}
+                        <div style="margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px;">
+                            {% for img in msg.images %}
+                                <img src="{{ url_for('static', filename='uploads/' + img.filename) }}" style="width: 100%; border-radius: 12px; cursor: pointer;" onclick="window.open(this.src)">
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div style="font-size: 0.72rem; margin-top: 5px; color: var(--text-muted); padding: 0 4px;">{{ msg.timestamp.strftime('%H:%M') }}</div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% set last_msg = messages[-1] if messages else None %}
+    {% set is_request = last_msg and not last_msg.is_accepted and last_msg.recipient_id == current_user.id %}
+
+    {% if is_request %}
+        <div class="chat-request-bridge" style="padding: 30px; text-align: center; background: rgba(255,255,255,0.7); backdrop-filter: blur(20px); border-top: 1px solid var(--border-color); animation: slideUp 0.4s ease-out;">
+            <h3 style="margin: 0 0 12px 0; font-weight: 800; font-size: 1.2rem;">New Message Request</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 25px; line-height: 1.5;">@{{ recipient.username }} wants to send you messages. They won't know you've seen this until you accept.</p>
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <form action="{{ url_for('accept_message', username=recipient.username) }}" method="post">
+                    <button type="submit" class="btn-primary" style="padding: 12px 30px; border-radius: 50px; font-weight: 700;">Accept</button>
+                </form>
+                <form action="{{ url_for('delete_request', username=recipient.username) }}" method="post">
+                    <button type="submit" class="btn-secondary" style="padding: 12px 30px; border-radius: 50px; background: rgba(239, 68, 68, 0.1); color: #EF4444; border-color: rgba(239, 68, 68, 0.2); font-weight: 600;" onmouseover="this.style.background='rgba(239, 68, 68, 0.2)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'">Delete</button>
+                </form>
+            </div>
+        </div>
+    {% else %}
+        <div class="chat-input-area" style="padding: 15px 20px; background: rgba(255,255,255,0.5); backdrop-filter: blur(10px); border-top: 1px solid var(--border-color);">
+            <div id="chat-image-preview-container" style="display: none; margin-bottom: 12px; gap: 8px; flex-wrap: wrap;">
+                <!-- Previews -->
+            </div>
+            <form action="{{ url_for('chat', username=recipient.username) }}" method="post" enctype="multipart/form-data" style="display: flex; gap: 10px; align-items: center;">
+                {{ form.hidden_tag() }}
+                
+                <div style="display: flex; gap: 4px;">
+                    <label for="{{ form.images.id }}" style="cursor: pointer; color: var(--primary-color); font-size: 1.25rem; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s;" onmouseover="this.style.background='rgba(167, 139, 250, 0.1)'" onmouseout="this.style.background='transparent'" title="Attach Images">
+                        <i class="fa-regular fa-image"></i>
+                    </label>
+                    {{ form.images(style="display: none;", onchange="previewChatImages(this)", multiple=True) }}
+
+                    <button type="button" onclick="toggleEmojiPicker(this, '{{ form.body.id }}')" style="cursor: pointer; color: var(--primary-color); font-size: 1.25rem; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s; background: transparent; border: none;" onmouseover="this.style.background='rgba(167, 139, 250, 0.1)'" onmouseout="this.style.background='transparent'" title="Emoji">
+                        <i class="fa-regular fa-face-smile"></i>
+                    </button>
+                </div>
+
+                <div style="flex: 1; position: relative;">
+                    {{ form.body(class="form-control", placeholder="Start a new message", style="border-radius: 24px; border: 1.5px solid var(--primary-soft); background: #ffffff; padding: 10px 18px; transition: all 0.2s; min-height: 44px; max-height: 120px;", rows="1", oninput='this.style.height = "";this.style.height = this.scrollHeight + "px"') }}
+                </div>
+                <button type="submit" class="btn-primary" style="width: 44px; height: 44px; padding: 0; border-radius: 50%; min-width: 44px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
+                    <i class="fa-solid fa-paper-plane" style="margin-left: -2px; margin-top: 1px;"></i>
+                </button>
+            </form>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    // Force scroll to bottom on load
+    window.onload = function() {
+        const history = document.getElementById('chat-history');
+        history.scrollTop = history.scrollHeight;
+    };
+
+    function previewChatImages(input) {
+        const container = document.getElementById('chat-image-preview-container');
+        container.innerHTML = '';
+        if (input.files && input.files.length > 0) {
+            container.style.display = 'flex';
+            Array.from(input.files).forEach((file) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const div = document.createElement('div');
+                    div.style.position = 'relative';
+                    div.style.width = '80px';
+                    div.style.height = '80px';
+                    div.style.borderRadius = '10px';
+                    div.style.overflow = 'hidden';
+                    div.style.border = '1px solid var(--border-color)';
+                    
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    img.style.objectFit = 'cover';
+                    
+                    const btn = document.createElement('button');
+                    btn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                    btn.type = 'button';
+                    btn.style.position = 'absolute';
+                    btn.style.top = '2px';
+                    btn.style.right = '2px';
+                    btn.style.background = 'rgba(0,0,0,0.6)';
+                    btn.style.color = 'white';
+                    btn.style.border = 'none';
+                    btn.style.borderRadius = '50%';
+                    btn.style.width = '18px';
+                    btn.style.height = '18px';
+                    btn.style.fontSize = '10px';
+                    btn.style.cursor = 'pointer';
+                    btn.onclick = () => {
+                        document.getElementById('{{ form.images.id }}').value = '';
+                        container.innerHTML = '';
+                        container.style.display = 'none';
+                    };
+                    
+                    div.appendChild(img);
+                    div.appendChild(btn);
+                    container.appendChild(div);
+                }
+                reader.readAsDataURL(file);
+            });
+        } else {
+            container.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}

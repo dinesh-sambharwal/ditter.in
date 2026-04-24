@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Profile / Ditter{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h2 style="margin-top: 0; margin-bottom: 20px; font-size: 1.5rem;">Edit Profile</h2>
+    <form method="POST" action="" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        {{ form.chosen_default(id="chosen_default_input", type="hidden") }}
+
+        <!-- Cover Photo Section -->
+        <div style="margin-bottom: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <label style="margin-bottom: 0; font-weight: 600; font-size: 0.95rem;">Cover Photo</label>
+                <button type="button" class="btn-secondary" style="padding: 6px 14px; font-size: 0.85rem;" onclick="toggleSection('cover-selection-ui', this)">Change Cover</button>
+            </div>
+            <div style="position: relative; height: 160px; border-radius: 16px; overflow: hidden; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); border: 1px solid var(--glass-border); margin-bottom: 16px; box-shadow: var(--glass-shadow);">
+                {% if current_user.cover_filename %}
+                    {% if current_user.cover_filename.startswith('gradients/') %}
+                        <img id="cover-preview" src="{{ url_for('static', filename='images/' + current_user.cover_filename) }}" style="width: 100%; height: 100%; object-fit: cover;">
+                    {% else %}
+                        <img id="cover-preview" src="{{ url_for('static', filename='uploads/' + current_user.cover_filename) }}" style="width: 100%; height: 100%; object-fit: cover;">
+                    {% endif %}
+                {% else %}
+                    <div id="cover-preview" style="width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));"></div>
+                {% endif %}
+                <label for="cover-upload-input" style="position: absolute; bottom: 12px; right: 12px; background: rgba(0,0,0,0.6); color: white; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; backdrop-filter: blur(8px); display: flex; align-items: center; gap: 6px; transition: all 0.2s; visibility: hidden;" id="cover-upload-label" onmouseover="this.style.background='rgba(0,0,0,0.8)'" onmouseout="this.style.background='rgba(0,0,0,0.6)'">
+                    <i class="fa-solid fa-camera"></i>Upload Photo
+                </label>
+                {{ form.cover(id="cover-upload-input", style="display: none;") }}
+                {{ form.chosen_cover(id="chosen_cover_input", type="hidden") }}
+            </div>
+
+            <!-- Gradient presets (Hidden by default) -->
+            <div id="cover-selection-ui" style="display: none; animation: fadeIn 0.3s ease-out;">
+                <p style="margin: 0 0 10px 0; color: var(--text-muted); font-size: 0.85rem;">Pick a premium gradient:</p>
+                <div style="display: flex; gap: 8px; overflow-x: auto; padding: 4px; scrollbar-width: none;">
+                    {% for i in range(1, 7) %}
+                    {% set grad_path = 'gradients/gradient_' ~ i ~ '.png' %}
+                    <div onclick="selectCoverGradient('{{ grad_path }}')" id="cover-opt-{{ i }}"
+                         style="flex: 0 0 80px; height: 45px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; background: url('{{ url_for('static', filename='images/' + grad_path) }}') center/cover; position: relative; overflow: hidden; {% if current_user.cover_filename == grad_path %}border-color: var(--primary-color); box-shadow: 0 0 10px var(--primary-soft);{% endif %}">
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Character Section -->
+        <div style="margin-bottom: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <label style="margin-bottom: 0; font-weight: 600; font-size: 0.95rem;">Profile Character</label>
+                <button type="button" class="btn-secondary" style="padding: 6px 14px; font-size: 0.85rem;" onclick="toggleSection('character-selection-ui', this)">Change Photo</button>
+            </div>
+            
+            <!-- Current character preview -->
+            <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+                {% set char_url_val = current_user | character_url %}
+                {% if char_url_val %}
+                    <img id="current-character-preview" src="{{ char_url_val }}" alt="Current character" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); box-shadow: 0 0 0 3px var(--bg-color), 0 0 0 6px var(--primary-color);">
+                {% else %}
+                    <div id="current-character-preview" style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 2rem; border: 3px solid var(--primary-color); flex-shrink: 0;">
+                        {{ current_user.username[0] | upper }}
+                    </div>
+                {% endif %}
+                <div id="character-upload-controls" style="display: none;">
+                    <p style="margin: 0 0 6px 0; color: var(--text-muted); font-size: 0.9rem;">Upload your own photo or pick a default below</p>
+                    <label for="character-upload-input" class="btn-primary" style="cursor: pointer; display: inline-block; padding: 8px 18px; font-size: 0.9rem; background: var(--primary-color); color: white; border: none; box-shadow: 0 2px 8px rgba(167, 139, 250, 0.4);">
+                        <i class="fa-solid fa-upload" style="margin-right: 8px;"></i>Upload Photo
+                    </label>
+                    {{ form.character(id="character-upload-input", style="display: none;") }}
+                </div>
+            </div>
+
+            <!-- Character picker (Hidden by default) -->
+            <div id="character-selection-ui" style="display: none; grid-template-columns: repeat(6, 1fr); gap: 12px; animation: fadeIn 0.3s ease-out;">
+                {% set char_labels = {'astronaut': 'Astronaut', 'ninja': 'Ninja', 'wizard': 'Wizard', 'robot': 'Robot', 'pirate': 'Pirate', 'cyborg': 'Cyborg'} %}
+                {% for name in DEFAULT_CHARACTERS %}
+                <div onclick="selectDefaultCharacter('{{ name }}')" id="character-opt-{{ name }}"
+                     style="cursor: pointer; text-align: center; border-radius: 12px; padding: 8px; border: 2px solid transparent; transition: all 0.2s; {% if current_user.character_filename == name + '.png' %}border-color: var(--primary-color); background: rgba(108, 92, 231, 0.1);{% endif %}"
+                     onmouseover="this.style.borderColor='var(--primary-color)'; this.style.background='rgba(108,92,231,0.08)';"
+                     onmouseout="if(document.getElementById('chosen_default_input').value !== '{{ name }}') { this.style.borderColor='transparent'; this.style.background='transparent'; }">
+                    <img src="{{ url_for('static', filename='characters/' + name + '.png') }}" alt="{{ name }}"
+                         style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto 6px;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">{{ char_labels[name] }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 0 0 25px 0;">
+
+        <div class="form-group">
+            {{ form.username.label }}
+            {{ form.username(class="form-control") }}
+            {% if form.username.errors %}<div class="invalid-feedback">{% for error in form.username.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
+        </div>
+        
+        <div class="form-group">
+            {{ form.email.label }}
+            {{ form.email(class="form-control") }}
+            {% if form.email.errors %}<div class="invalid-feedback">{% for error in form.email.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
+        </div>
+ 
+        <div class="form-group">
+            {{ form.bio.label }}
+            {{ form.bio(class="form-control", rows="3", style="resize: none;") }}
+            {% if form.bio.errors %}<div class="invalid-feedback">{% for error in form.bio.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
+        </div>
+ 
+        <div style="margin: 25px 0 15px 0; display: flex; align-items: center; gap: 12px; cursor: pointer;" onclick="document.getElementById('{{ form.is_private.id }}').click()">
+            {{ form.is_private(style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--primary-color);") }}
+            {{ form.is_private.label(style="margin-bottom: 0; cursor: pointer; font-weight: 600; font-size: 1rem;") }}
+        </div>
+
+        <div class="form-group" style="margin-bottom: 30px;">
+            {{ form.message_privacy.label(style="font-weight: 600; display: block; margin-bottom: 10px;") }}
+            {{ form.message_privacy(class="form-control") }}
+            {% if form.message_privacy.errors %}<div class="invalid-feedback">{% for error in form.message_privacy.errors %}<span>{{ error }}</span>{% endfor %}</div>{% endif %}
+            <p style="margin: 8px 0 0 0; color: var(--text-muted); font-size: 0.85rem;">Control who can start new conversations with you.</p>
+        </div>
+        
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 30px 0;">
+        
+        {% set show_password_card = form.current_password.errors or form.new_password.errors or form.confirm_new_password.errors %}
+        
+        <button type="button" id="change-pwd-btn" class="btn-secondary" style="width: 100%; margin-bottom: 20px; {% if show_password_card %}display: none;{% endif %}" onclick="document.getElementById('password-card').style.display='block'; this.style.display='none';">Change Password</button>
+ 
+        <div id="password-card" style="{% if not show_password_card %}display: none;{% endif %} background: rgba(255,255,255,0.2); backdrop-filter: var(--glass-blur); padding: 24px; border-radius: 16px; border: 1px solid var(--glass-border); margin-bottom: 24px; box-shadow: var(--glass-shadow);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800;">Change Password</h3>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; color: var(--text-muted); font-size: 1.2rem;" onclick="document.getElementById('password-card').style.display='none'; document.getElementById('change-pwd-btn').style.display='block';"></i>
+            </div>
+            <div class="form-group">
+                {{ form.current_password.label }}
+                {{ form.current_password(class="form-control") }}
+            </div>
+            <div class="form-group">
+                {{ form.new_password.label }}
+                {{ form.new_password(class="form-control") }}
+                {% if form.new_password.errors %}<div class="invalid-feedback">{% for e in form.new_password.errors %}<span>{{ e }}</span>{% endfor %}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                {{ form.confirm_new_password.label }}
+                {{ form.confirm_new_password(class="form-control") }}
+                {% if form.confirm_new_password.errors %}<div class="invalid-feedback">{% for e in form.confirm_new_password.errors %}<span>{{ e }}</span>{% endfor %}</div>{% endif %}
+            </div>
+        </div>
+        
+        <div class="form-group" style="margin-top: 30px;">
+            {{ form.submit(class="btn-primary", style="width: 100%; height: 50px; font-size: 1.1rem;") }}
+        </div>
+    </form>
+    <div class="form-footer">
+        <a href="{{ url_for('user', username=current_user.username) }}">&larr; Back to Profile</a>
+    </div>
+</div>
+
+<script>
+function toggleSection(id, btn) {
+    const section = document.getElementById(id);
+    const isVisible = section.style.display !== 'none';
+    
+    if (isVisible) {
+        section.style.display = 'none';
+        btn.textContent = id.includes('cover') ? 'Change Cover' : 'Change Photo';
+        if (id.includes('cover')) document.getElementById('cover-upload-label').style.visibility = 'hidden';
+        if (id.includes('character')) document.getElementById('character-upload-controls').style.display = 'none';
+    } else {
+        section.style.display = id.includes('character') ? 'grid' : 'block';
+        btn.textContent = 'Cancel';
+        if (id.includes('cover')) document.getElementById('cover-upload-label').style.visibility = 'visible';
+        if (id.includes('character')) document.getElementById('character-upload-controls').style.display = 'block';
+    }
+}
+
+function selectDefaultCharacter(name) {
+    // Update hidden input
+    document.getElementById('chosen_default_input').value = name;
+    
+    // Update preview
+    const preview = document.getElementById('current-character-preview');
+    const src = '/static/characters/' + name + '.png';
+    if (preview.tagName === 'IMG') {
+        preview.src = src;
+    } else {
+        // Replace letter div with img
+        const img = document.createElement('img');
+        img.id = 'current-character-preview';
+        img.src = src;
+        img.alt = name;
+        img.style.cssText = preview.style.cssText + 'object-fit: cover;';
+        preview.parentNode.replaceChild(img, preview);
+    }
+    
+    // Highlight selected tile, reset others
+    document.querySelectorAll('[id^="character-opt-"]').forEach(el => {
+        el.style.borderColor = 'transparent';
+        el.style.background = 'transparent';
+    });
+    const selected = document.getElementById('character-opt-' + name);
+    if (selected) {
+        selected.style.borderColor = 'var(--primary-color)';
+        selected.style.background = 'rgba(108, 92, 231, 0.1)';
+    }
+    
+    // Clear any file upload
+    document.getElementById('character-upload-input').value = '';
+}
+
+// Show file upload preview immediately on selection
+document.getElementById('character-upload-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        const preview = document.getElementById('current-character-preview');
+        if (preview.tagName === 'IMG') {
+            preview.src = ev.target.result;
+        } else {
+            const img = document.createElement('img');
+            img.id = 'current-character-preview';
+            img.src = ev.target.result;
+            img.alt = 'Preview';
+            img.style.cssText = 'width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-color); box-shadow: 0 0 0 3px var(--bg-color), 0 0 0 6px var(--primary-color);';
+            preview.parentNode.replaceChild(img, preview);
+        }
+    };
+    reader.readAsDataURL(file);
+    // Clear default selection
+    document.getElementById('chosen_default_input').value = '';
+    document.querySelectorAll('[id^="character-opt-"]').forEach(el => {
+        el.style.borderColor = 'transparent';
+        el.style.background = 'transparent';
+    });
+});
+
+function selectCoverGradient(path) {
+    // Update hidden input
+    document.getElementById('chosen_cover_input').value = path;
+    
+    // Update preview
+    let preview = document.getElementById('cover-preview');
+    const src = '/static/images/' + path;
+    if (preview.tagName === 'IMG') {
+        preview.src = src;
+    } else {
+        const img = document.createElement('img');
+        img.id = 'cover-preview';
+        img.src = src;
+        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+        preview.parentNode.replaceChild(img, preview);
+    }
+    
+    // Highlight selection
+    document.querySelectorAll('[id^="cover-opt-"]').forEach(el => {
+        el.style.borderColor = 'transparent';
+        el.style.boxShadow = 'none';
+    });
+    // Extract index from path: gradients/gradient_X.png
+    const index = path.split('_')[1].split('.')[0];
+    const selected = document.getElementById('cover-opt-' + index);
+    if (selected) {
+        selected.style.borderColor = 'var(--primary-color)';
+        selected.style.boxShadow = '0 0 10px var(--primary-soft)';
+    }
+    
+    // Clear file upload
+    document.getElementById('cover-upload-input').value = '';
+}
+
+// Cover photo preview
+document.getElementById('cover-upload-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        let preview = document.getElementById('cover-preview');
+        if (preview.tagName !== 'IMG') {
+            const img = document.createElement('img');
+            img.id = 'cover-preview';
+            img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+            preview.parentNode.replaceChild(img, preview);
+            preview = img;
+        }
+        preview.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+    // Clear preset selection
+    document.getElementById('chosen_cover_input').value = '';
+    document.querySelectorAll('[id^="cover-opt-"]').forEach(el => {
+        el.style.borderColor = 'transparent';
+        el.style.boxShadow = 'none';
+    });
+});
+</script>
+{% endblock %}

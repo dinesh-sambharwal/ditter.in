@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Report Content / Ditter{% endblock %}
+
+{% block content %}
+<div class="form-container" style="background: var(--card-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); padding: 40px; border-radius: 28px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); max-width: 500px; margin: 40px auto; overflow: hidden; position: relative;">
+    
+    <!-- Subtle warning glow -->
+    <div style="position: absolute; top: -50px; left: -50px; width: 150px; height: 150px; background: var(--warning); filter: blur(80px); opacity: 0.15; z-index: 0; pointer-events: none;"></div>
+
+    <div style="position: relative; z-index: 1;">
+        <h2 style="margin-top: 0; margin-bottom: 24px; font-size: 1.8rem; font-weight: 800; display: flex; align-items: center;">
+            <div style="background: rgba(251, 191, 36, 0.15); width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 14px;">
+                <i class="fa-solid fa-flag" style="color: #f59e0b; font-size: 1.1rem;"></i>
+            </div>
+            Report {{ target_type | title }}
+        </h2>
+        
+        <p style="color: var(--text-secondary); margin-bottom: 30px; font-size: 0.95rem;">
+            Please let us know why you are reporting this {{ target_type }}. Your report is anonymous, and will be manually reviewed by an administrator.
+        </p>
+        
+        <form method="POST" action="{{ url_for('report') }}">
+            <input type="hidden" name="target_type" value="{{ target_type }}">
+            <input type="hidden" name="target_id" value="{{ target_id }}">
+            
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="font-weight: 700; margin-bottom: 16px; display: block; color: var(--text-main); font-size: 1.05rem;">Reason for reporting</label>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    {% for reason in ['Spam or misleading', 'Hate speech or harassment', 'Violence or harmful behavior', 'Nudity or sexual content', 'Pretending to be someone else', 'Other'] %}
+                    <label style="display: flex; align-items: center; gap: 14px; cursor: pointer; padding: 14px 18px; border: 1px solid var(--border-color); border-radius: 16px; transition: all 0.2s ease; background: var(--bg-color);" onmouseover="this.style.background='var(--primary-soft)'; this.style.borderColor='var(--primary-color)';" onmouseout="if(!this.querySelector('input').checked){ this.style.background='var(--bg-color)'; this.style.borderColor='var(--border-color)'; }">
+                        <input type="radio" name="reason" value="{{ reason }}" required style="accent-color: var(--primary-color); width: 18px; height: 18px; cursor: pointer;" onchange="this.closest('form').querySelectorAll('label').forEach(l => {l.style.background='var(--bg-color)'; l.style.borderColor='var(--border-color)';}); this.parentElement.style.background='var(--primary-soft)'; this.parentElement.style.borderColor='var(--primary-color)';">
+                        <span style="font-weight: 500; color: var(--text-main); font-size: 0.95rem;">{{ reason }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-top: 35px; display: flex; gap: 12px;">
+                <a href="javascript:history.back()" style="flex: 1; text-align: center; background: transparent; border: 1px solid var(--border-color); color: var(--text-main); font-weight: 700; padding: 14px; border-radius: 16px; text-decoration: none; transition: background 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.05)'" onmouseout="this.style.background='transparent'">Cancel</a>
+                <button type="submit" style="flex: 1; padding: 14px; border-radius: 16px; font-weight: 700; font-size: 1rem; background: #f59e0b; color: white; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); transition: transform 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">Submit Report</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% from "_macros.html" import character %}
+
+{% block view_title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="notifications-wrapper" style="margin: -20px;">
+    {% for notif in notifications %}
+        <div class="notification-item {{ 'unread' if not notif.is_read }}" 
+             {% if notif.post_id %}onclick="window.location.href='{{ url_for('view_post', post_id=notif.post_id) }}'"{% elif notif.notification_type in ['follow', 'request', 'approve'] %}onclick="window.location.href='{{ url_for('user', username=notif.sender.username) }}'"{% endif %}>
+            
+            <div class="notif-icon-col">
+                {% if notif.notification_type == 'like' or notif.notification_type == 'comment_like' %}
+                    <i class="fa-solid fa-heart" style="color: #f91880;"></i>
+                {% elif notif.notification_type == 'comment' %}
+                    <i class="fa-solid fa-comment" style="color: var(--primary-color);"></i>
+                {% elif notif.notification_type == 'redit' %}
+                    <i class="fa-solid fa-retweet" style="color: var(--success);"></i>
+                {% elif notif.notification_type == 'quote' %}
+                    <i class="fa-solid fa-quote-left" style="color: var(--primary-color);"></i>
+                {% elif notif.notification_type == 'follow' %}
+                    <i class="fa-solid fa-user" style="color: var(--text-main);"></i>
+                {% elif notif.notification_type == 'request' %}
+                    <i class="fa-solid fa-user-clock" style="color: var(--text-muted);"></i>
+                {% elif notif.notification_type == 'approve' %}
+                    <i class="fa-solid fa-user-check" style="color: var(--success);"></i>
+                {% elif notif.notification_type == 'mention' %}
+                    <i class="fa-solid fa-at" style="color: var(--primary-color);"></i>
+                {% endif %}
+            </div>
+
+            <div class="notif-content-col">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    {{ character(notif.sender, size=32) }}
+                    <div class="notif-text" style="display: inline-block;">
+                    <strong>{{ notif.sender.username }}</strong>
+                    {% if notif.notification_type == 'like' %}
+                        liked your Dit
+                    {% elif notif.notification_type == 'comment_like' %}
+                        liked your reply
+                    {% elif notif.notification_type == 'comment' %}
+                        replied to your Dit
+                    {% elif notif.notification_type == 'redit' %}
+                        re-ditted your Dit
+                    {% elif notif.notification_type == 'quote' %}
+                        quoted your Dit
+                    {% elif notif.notification_type == 'follow' %}
+                        followed you
+                    {% elif notif.notification_type == 'request' %}
+                        requested to follow you
+                    {% elif notif.notification_type == 'approve' %}
+                        approved your follow request!
+                    {% elif notif.notification_type == 'mention' %}
+                        mentioned you in a post
+                    {% endif %}
+                </div>
+                </div> <!-- Close the avatar/text flex container -->
+
+                {% if notif.post %}
+                    <div class="notif-preview">
+                        {% if notif.notification_type == 'comment_like' and notif.comment %}
+                            {{ notif.comment.body[:140] }}{% if notif.comment.body|length > 140 %}...{% endif %}
+                        {% else %}
+                            {{ notif.post.content[:140] }}{% if notif.post.content|length > 140 %}...{% endif %}
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                {% if notif.notification_type == 'request' and notif.sender.has_requested_follow(current_user) %}
+                    <div style="display: flex; gap: 8px; margin-top: 12px;">
+                        <a href="{{ url_for('approve', username=notif.sender.username) }}" class="btn-primary" style="padding: 6px 16px; font-size: 0.9rem; border-radius: 50px;" onclick="event.stopPropagation();">Approve</a>
+                        <a href="{{ url_for('deny', username=notif.sender.username) }}" class="btn-primary" style="background: transparent; color: var(--danger) !important; border: 1px solid var(--border-color); padding: 6px 16px; font-size: 0.9rem; border-radius: 50px;" onclick="event.stopPropagation();">Deny</a>
+                    </div>
+                {% endif %}
+                
+                <div class="notif-time">
+                    {{ notif.timestamp.strftime('%b %d, %I:%M %p') }}
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div style="padding: 60px 20px; text-align: center; color: var(--text-muted);">
+            <i class="fa-regular fa-bell" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.5;"></i>
+            <h3 style="margin: 0; color: var(--text-main); font-size: 1.5rem;">Nothing to see here — yet</h3>
+            <p>From likes to Redits and a whole lot more, this is where all the action happens.</p>
+        </div>
+    {% endfor %}
+
+    {% if pagination.has_prev or pagination.has_next %}
+    <div style="display: flex; justify-content: space-between; padding: 20px;">
+        {% if pagination.has_prev %}
+            <a href="{{ url_for('notifications', page=pagination.prev_num) }}" class="btn-primary" style="border-radius: 50px;">&larr; Newer</a>
+        {% else %}
+            <div></div>
+        {% endif %}
+        {% if pagination.has_next %}
+            <a href="{{ url_for('notifications', page=pagination.next_num) }}" class="btn-primary" style="border-radius: 50px;">Older &rarr;</a>
+        {% else %}
+            <div></div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

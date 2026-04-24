@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Contact Us / Ditter{% endblock %}
+
+{% block content %}
+<div class="form-container" style="background: var(--card-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-border); padding: 40px; border-radius: 28px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); max-width: 600px; margin: 40px auto; overflow: hidden; position: relative;">
+    
+    <!-- Subtle accent glow -->
+    <div style="position: absolute; top: -50px; left: -50px; width: 200px; height: 200px; background: var(--primary-color); filter: blur(100px); opacity: 0.15; z-index: 0; pointer-events: none;"></div>
+
+    <div style="position: relative; z-index: 1;">
+        <h2 style="margin-top: 0; margin-bottom: 12px; font-size: 2rem; font-weight: 900; color: var(--primary-color);">Contact Administration</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 30px; font-size: 1.05rem; line-height: 1.5;">
+            Have a question, feedback, or need to escalate an issue? Reach out to the Ditter moderation and development team directly.
+        </p>
+        
+        <form method="POST" action="{{ url_for('contact') }}" style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="form-group">
+                <label style="font-weight: 700; margin-bottom: 8px; display: block; color: var(--text-main);">Full Name</label>
+                <input type="text" name="name" required style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); font-size: 1rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--primary-color)'" onblur="this.style.borderColor='var(--border-color)'" {% if current_user.is_authenticated %}value="{{ current_user.username }}"{% endif %}>
+            </div>
+
+            <div class="form-group">
+                <label style="font-weight: 700; margin-bottom: 8px; display: block; color: var(--text-main);">Email Address</label>
+                <input type="email" name="email" required style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); font-size: 1rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--primary-color)'" onblur="this.style.borderColor='var(--border-color)'" {% if current_user.is_authenticated %}value="{{ current_user.email }}"{% endif %}>
+            </div>
+
+            <div class="form-group">
+                <label style="font-weight: 700; margin-bottom: 8px; display: block; color: var(--text-main);">Subject</label>
+                <input type="text" name="subject" required style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); font-size: 1rem; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--primary-color)'" onblur="this.style.borderColor='var(--border-color)'">
+            </div>
+
+            <div class="form-group">
+                <label style="font-weight: 700; margin-bottom: 8px; display: block; color: var(--text-main);">Message</label>
+                <textarea name="message" rows="6" required style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); font-size: 1rem; outline: none; resize: vertical; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--primary-color)'" onblur="this.style.borderColor='var(--border-color)'"></textarea>
+            </div>
+            
+            <div class="form-group" style="margin-top: 10px;">
+                <button type="submit" style="width: 100%; padding: 16px; border-radius: 12px; font-weight: 800; font-size: 1.1rem; background: var(--primary-color); color: white; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); transition: transform 0.2s ease, background 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.background='var(--primary-hover)';" onmouseout="this.style.transform='translateY(0)'; this.style.background='var(--primary-color)';">Send Message</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

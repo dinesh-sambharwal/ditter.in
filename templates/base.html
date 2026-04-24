@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    {% from "_macros.html" import character %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Ditter{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="app-container {{ 'unauth' if not current_user.is_authenticated else '' }}">
+        <!-- LEFT SIDEBAR: Navigation -->
+        {% if current_user.is_authenticated %}
+        <aside class="sidebar-left">
+            <a href="{{ url_for('index') }}" class="nav-brand">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Ditter">
+            </a>
+            
+            <nav style="display: flex; flex-direction: column; flex: 1;">
+                <a href="{{ url_for('index') }}" class="nav-item">
+                    <i class="fa-solid fa-house"></i> <span>Home</span>
+                </a>
+                
+                {% if current_user.is_authenticated %}
+                <a href="{{ url_for('notifications') }}" class="nav-item">
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <i class="fa-solid fa-bell"></i>
+                        {% set unread_count = current_user.notifications.filter_by(is_read=False).count() %}
+                        {% if unread_count > 0 %}
+                            <span class="notification-badge" style="position: absolute; top: -4px; right: -4px; background: var(--primary-color); border: 2px solid white; border-radius: 50%; width: 10px; height: 10px; display: block;"></span>
+                        {% endif %}
+                    </div>
+                    <span>Notifications</span>
+                </a>
+
+                <a href="{{ url_for('messages') }}" class="nav-item">
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <i class="fa-solid fa-envelope"></i>
+                        {% set unread_msgs = current_user.messages_received.filter_by(is_read=False).count() %}
+                        {% if unread_msgs > 0 %}
+                            <span class="notification-badge" style="position: absolute; top: -4px; right: -4px; background: var(--primary-color); border: 2px solid white; border-radius: 50%; width: 10px; height: 10px; display: block;"></span>
+                        {% endif %}
+                    </div>
+                    <span>Messages</span>
+                </a>
+
+                <a href="{{ url_for('bookmarks') }}" class="nav-item">
+                    <i class="fa-solid fa-bookmark"></i> <span>Bookmarks</span>
+                </a>
+                
+                <a href="{{ url_for('user', username=current_user.username) }}" class="nav-item">
+                    <i class="fa-solid fa-user"></i> <span>Profile</span>
+                </a>
+
+                {% if current_user.is_admin %}
+                <a href="{{ url_for('admin_dashboard') }}" class="nav-item">
+                    <i class="fa-solid fa-user-shield"></i> <span>Admin</span>
+                </a>
+                {% endif %}
+                
+                <a href="{{ url_for('contact') }}" class="nav-item">
+                    <i class="fa-solid fa-headset"></i> <span>Contact Us</span>
+                </a>
+                
+                <a href="{{ url_for('logout') }}" class="nav-item nav-logout">
+                    <i class="fa-solid fa-right-from-bracket"></i> <span>Logout</span>
+                </a>
+                {% else %}
+                <a href="{{ url_for('login') }}" class="nav-item">
+                    <i class="fa-solid fa-right-to-bracket"></i> <span>Login</span>
+                </a>
+                <a href="{{ url_for('register') }}" class="nav-item">
+                    <i class="fa-solid fa-user-plus"></i> <span>Sign Up</span>
+                </a>
+                {% endif %}
+            </nav>
+        </aside>
+        {% endif %}
+
+        <!-- CENTER: Main Content -->
+        <main class="main-content {{ 'unauth' if not current_user.is_authenticated else '' }}">
+            {% block header %}
+            {% if current_user.is_authenticated %}
+            <header class="view-header">
+                <h2>{% block view_title %}Home{% endblock %}</h2>
+            </header>
+            {% endif %}
+            {% endblock %}
+            
+            <div style="padding: 20px;">
+                <div class="flash-container">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+                
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+
+        <!-- RIGHT SIDEBAR: Discovery -->
+        {% if current_user.is_authenticated %}
+        <aside class="sidebar-right">
+            <div class="search-box-container" style="display: flex; gap: 10px; align-items: center;">
+                <form action="{{ url_for('search') }}" method="get" style="flex: 1; margin: 0;">
+                    <div class="search-input-wrapper">
+                        <i class="fa-solid fa-search"></i>
+                        <input type="text" name="q" placeholder="Search Ditter" class="search-bar" style="width: 100%;">
+                    </div>
+                </form>
+                <button id="theme-toggle" style="background: var(--card-bg); border: 1px solid var(--glass-border); color: var(--primary-color); border-radius: 50%; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; box-shadow: var(--glass-shadow);" aria-label="Toggle Dark Mode" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                    <i class="fa-solid fa-moon" style="font-size: 1.1rem;"></i>
+                </button>
+            </div>
+            
+            <script>
+                (function() {
+                    const theme = localStorage.getItem('theme') || 'light';
+                    if (theme === 'dark') {
+                        document.documentElement.setAttribute('data-theme', 'dark');
+                    }
+                })();
+
+                document.addEventListener('DOMContentLoaded', () => {
+                    const themeBtn = document.getElementById('theme-toggle');
+                    if (!themeBtn) return;
+                    const icon = themeBtn.querySelector('i');
+                    
+                    const updateIcon = (theme) => {
+                        if (theme === 'dark') {
+                            icon.classList.remove('fa-moon');
+                            icon.classList.add('fa-sun');
+                        } else {
+                            icon.classList.remove('fa-sun');
+                            icon.classList.add('fa-moon');
+                        }
+                    };
+
+                    updateIcon(localStorage.getItem('theme') || 'light');
+                    
+                    themeBtn.addEventListener('click', () => {
+                        const currentTheme = document.documentElement.getAttribute('data-theme');
+                        if (currentTheme === 'dark') {
+                            document.documentElement.removeAttribute('data-theme');
+                            localStorage.setItem('theme', 'light');
+                            updateIcon('light');
+                        } else {
+                            document.documentElement.setAttribute('data-theme', 'dark');
+                            localStorage.setItem('theme', 'dark');
+                            updateIcon('dark');
+                        }
+                    });
+                });
+            </script>
+
+
+            
+            <!-- Trending Section -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    <h3>What's happening</h3>
+                </div>
+                <div class="sidebar-scrollable-content">
+                    {% set trending = Post.get_trending_hashtags(10) %}
+                    {% if trending %}
+                        {% for tag, count in trending %}
+                            <a href="{{ url_for('search', q='#' + tag) }}" style="text-decoration: none; color: inherit; display: block; transition: all 0.2s ease;">
+                                <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-main); margin: 2px 0;">#{{ tag }}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">{{ count }} dits</div>
+                            </a>
+                        {% endfor %}
+                    {% else %}
+                        <div style="color: var(--text-muted); font-size: 0.85rem;">No trends yet today.</div>
+                    {% endif %}
+                </div>
+                <div class="sidebar-section-footer">
+                    <a href="{{ url_for('trending_full') }}">Show more</a>
+                </div>
+            </div>
+
+            <!-- Suggestions Section -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    <h3>Who to follow</h3>
+                </div>
+                <div class="sidebar-scrollable-content">
+                    {% set suggestions = current_user.get_suggestions(10) if current_user.is_authenticated else [] %}
+                    {% if suggestions %}
+                        {% for sug_user in suggestions %}
+                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                                <div style="display: flex; gap: 10px; align-items: center; min-width: 0;">
+                                    {{ character(sug_user, size=36) }}
+                                    <div style="min-width: 0;">
+                                        <div style="font-weight: 700; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-main);">{{ sug_user.username }}</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">@{{ sug_user.username }}</div>
+                                    </div>
+                                </div>
+                                <a href="{{ url_for('follow', username=sug_user.username) }}" class="btn-primary" style="padding: 6px 14px; font-size: 0.8rem; border-radius: 50px; text-decoration: none; flex-shrink: 0;">Follow</a>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="color: var(--text-muted); font-size: 0.85rem;">No suggestions.</div>
+                    {% endif %}
+                </div>
+                <div class="sidebar-section-footer">
+                    <a href="{{ url_for('who_to_follow_full') }}">Show more</a>
+                </div>
+            </div>
+        </aside>
+        {% endif %}
+    </div>
+    <div id="global-emoji-picker" class="emoji-popover">
+        <emoji-picker></emoji-picker>
+    </div>
+
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1/index.js"></script>
+    <style>
+        emoji-picker {
+            width: 100%;
+            max-width: 320px;
+            height: 350px;
+            --background: var(--glass-bg);
+            --border-color: var(--border-color);
+            --outline-color: var(--primary-main);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        .emoji-popover {
+            position: fixed;
+            z-index: 9999;
+            display: none;
+            backdrop-filter: blur(15px);
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 5px;
+            box-shadow: 0 12px 48px rgba(0,0,0,0.2);
+        }
+        .emoji-popover.active {
+            display: block;
+        }
+    </style>
+    <script>
+        function toggleEmojiPicker(trigger, targetId) {
+            const picker = document.getElementById('global-emoji-picker');
+            const isActive = picker.classList.contains('active');
+            const currentTarget = picker.querySelector('emoji-picker').getAttribute('data-target');
+            
+            if (isActive && currentTarget === targetId) {
+                picker.classList.remove('active');
+                return;
+            }
+
+            picker.querySelector('emoji-picker').setAttribute('data-target', targetId);
+            picker.classList.add('active');
+            
+            const rect = trigger.getBoundingClientRect();
+            let top = rect.bottom + 10;
+            let left = rect.left;
+            
+            if (left + 320 > window.innerWidth) {
+                left = window.innerWidth - 330;
+            }
+            if (top + 350 > window.innerHeight) {
+                top = rect.top - 360;
+            }
+            
+            picker.style.top = top + 'px';
+            picker.style.left = left + 'px';
+            
+            const closeHandler = (e) => {
+                if (!picker.contains(e.target) && !trigger.contains(e.target)) {
+                    picker.classList.remove('active');
+                    document.removeEventListener('mousedown', closeHandler);
+                    window.removeEventListener('scroll', closeHandler, true);
+                }
+            };
+            setTimeout(() => {
+                document.addEventListener('mousedown', closeHandler);
+                window.addEventListener('scroll', closeHandler, true);
+            }, 10);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.addEventListener('emoji-click', event => {
+                const picker = event.target;
+                if (picker.tagName === 'EMOJI-PICKER') {
+                    const targetId = picker.getAttribute('data-target');
+                    const textarea = document.getElementById(targetId);
+                    if (textarea) {
+                        const start = textarea.selectionStart;
+                        const end = textarea.selectionEnd;
+                        const text = textarea.value;
+                        textarea.value = text.substring(0, start) + event.detail.unicode + text.substring(end);
+                        textarea.focus();
+                        textarea.setSelectionRange(start + event.detail.unicode.length, start + event.detail.unicode.length);
+                        
+                        document.getElementById('global-emoji-picker').classList.remove('active');
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

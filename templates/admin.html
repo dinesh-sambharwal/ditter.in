@@ -1,0 +1,485 @@
+{% extends "base.html" %}
+{% block title %}Administrative Console / Ditter{% endblock %}
+{% block view_title %}Administrative Console{% endblock %}
+{% block content %}
+<div class="admin-container" style="padding: 20px; max-width: 1100px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600; background: var(--card-bg); padding: 8px 16px; border-radius: 12px; border: 1px solid var(--border-color);">
+            System Operational · {{ total_users }} Users
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div style="display: flex; gap: 8px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; flex-wrap: nowrap;">
+        <button onclick="showTab('stats')" class="admin-tab active" id="tab-btn-stats" style="padding: 10px 14px; font-size: 0.85rem; flex: 1; min-width: max-content;">
+            <i class="fa-solid fa-chart-line"></i>Insights
+        </button>
+        <button onclick="showTab('reports')" class="admin-tab" id="tab-btn-reports" style="padding: 10px 14px; font-size: 0.85rem; flex: 1; min-width: max-content;">
+            <i class="fa-solid fa-flag"></i>Reports 
+            {% if pending_reports %}<span class="badge" style="padding: 2px 6px; font-size: 0.7rem;">{{ pending_reports|length }}</span>{% endif %}
+        </button>
+        <button onclick="showTab('users')" class="admin-tab" id="tab-btn-users" style="padding: 10px 14px; font-size: 0.85rem; flex: 1; min-width: max-content;">
+            <i class="fa-solid fa-users-gear"></i>Directory
+        </button>
+        <button onclick="showTab('messages')" class="admin-tab" id="tab-btn-messages" style="padding: 10px 14px; font-size: 0.85rem; flex: 1; min-width: max-content;">
+            <i class="fa-solid fa-envelope-open-text"></i>Inquiries
+        </button>
+    </div>
+
+    <!-- Content Sections -->
+    <div class="admin-tab-content active" id="tab-stats">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 20px;">
+            <div class="stat-card" onclick="location.href='{{ url_for('admin_dashboard', tab='users') }}'" style="cursor: pointer;">
+                <div class="stat-icon" style="background: rgba(99, 102, 241, 0.15); color: #6366f1;"><i class="fa-solid fa-user-plus"></i></div>
+                <div class="stat-value">{{ total_users }}</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card" onclick="location.href='{{ url_for('admin_dashboard', tab='users', filter='banned') }}'" style="cursor: pointer;">
+                <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;"><i class="fa-solid fa-user-slash"></i></div>
+                <div class="stat-value">{{ banned_users_count }}</div>
+                <div class="stat-label">Banned Users</div>
+            </div>
+            <div class="stat-card" onclick="location.href='{{ url_for('admin_dashboard', tab='users', filter='restricted') }}'" style="cursor: pointer;">
+                <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;"><i class="fa-solid fa-user-lock"></i></div>
+                <div class="stat-value">{{ restricted_users_count }}</div>
+                <div class="stat-label">Restricted Users</div>
+            </div>
+            <div class="stat-card" onclick="showTab('reports')" style="cursor: pointer;">
+                <div class="stat-icon" style="background: rgba(244, 63, 94, 0.15); color: #f43f5e;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="stat-value">{{ pending_reports|length }}</div>
+                <div class="stat-label">Pending Reports</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;"><i class="fa-solid fa-comment-dots"></i></div>
+                <div class="stat-value">{{ total_posts }}</div>
+                <div class="stat-label">Total Dits</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 40px; background: var(--card-bg); padding: 30px; border-radius: 24px; border: 1px solid var(--border-color);">
+            <h4 style="margin-top: 0; margin-bottom: 20px; font-weight: 800;">Recent Activity Overview</h4>
+            <p style="color: var(--text-muted);">The administrative panel allows you to monitor site health, respond to user reports, and manage accounts directly. System is currently healthy and all systems are operational.</p>
+        </div>
+    </div>
+
+    <div class="admin-tab-content" id="tab-reports">
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+            {% for report in pending_reports %}
+            <div class="report-card" style="background: var(--card-bg); border-radius: 20px; border: 1px solid var(--border-color); overflow: hidden; display: flex; flex-direction: column;">
+                <!-- Header with Reporter Info and Dismiss -->
+                <div style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); background: rgba(0,0,0,0.01); display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="report-badge {{ report.target_type }}" style="background: {% if report.target_type == 'post' %}var(--primary-soft){% elif report.target_type == 'comment' %}rgba(16, 185, 129, 0.1){% else %}rgba(245, 158, 11, 0.1){% endif %}; color: {% if report.target_type == 'post' %}var(--primary-color){% elif report.target_type == 'comment' %}var(--success-color){% else %}var(--warning){% endif %}; padding: 4px 10px; border-radius: 8px; font-weight: 800; font-size: 0.7rem; text-transform: uppercase;">{{ report.target_type }}</span>
+                        <div style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600;">
+                            Flagged by <a href="{{ url_for('user', username=report.reporter.username) }}" style="color: var(--primary-color); text-decoration: none;">@{{ report.reporter.username }}</a>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">{{ report.timestamp.strftime('%b %d, %H:%M') }}</div>
+                </div>
+
+                <div style="padding: 24px; display: flex; gap: 24px;">
+                    <!-- Content Area -->
+                    <div style="flex: 1;">
+                        <div style="font-weight: 800; color: #ef4444; margin-bottom: 16px; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-triangle-exclamation" style="font-size: 0.9em;"></i>
+                            {{ report.reason }}
+                        </div>
+                        
+                        <div style="background: var(--bg-color); border-radius: 16px; border: 1px solid var(--border-color); padding: 20px; position: relative; overflow: hidden;">
+                            <div style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--border-color);"></div>
+                            
+                            {% if report.target_type == 'post' %}
+                                {% if report.post %}
+                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                                        <img src="{{ report.post.author|character_url or url_for('static', filename='images/default_avatar.png') }}" style="width: 24px; height: 24px; border-radius: 50%;">
+                                        <span style="font-weight: 700; font-size: 0.9rem;">@{{ report.post.author.username }}</span>
+                                        <a href="{{ url_for('view_post', post_id=report.post.id) }}" target="_blank" style="margin-left: auto; color: var(--primary-color); font-size: 0.75rem; font-weight: 700; text-decoration: none;">OPEN DIT <i class="fa-solid fa-external-link" style="font-size: 0.8em;"></i></a>
+                                    </div>
+                                    <div style="font-size: 1rem; line-height: 1.5; color: var(--text-main); margin-bottom: 12px;">{{ report.post.content }}</div>
+                                    {% if report.post.image_url %}
+                                        <img src="{{ url_for('static', filename='uploads/' + report.post.image_url) }}" style="max-width: 100%; border-radius: 12px; margin-bottom: 12px; display: block; border: 1px solid var(--border-color);">
+                                    {% endif %}
+                                {% else %}
+                                    <div style="text-align: center; padding: 20px; color: var(--text-muted); font-style: italic;">Post was already deleted.</div>
+                                {% endif %}
+                            {% elif report.target_type == 'comment' %}
+                                {% if report.comment %}
+                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                                        <img src="{{ report.comment.author|character_url or url_for('static', filename='images/default_avatar.png') }}" style="width: 24px; height: 24px; border-radius: 50%;">
+                                        <span style="font-weight: 700; font-size: 0.9rem;">@{{ report.comment.author.username }}</span>
+                                        <a href="{{ url_for('view_post', post_id=report.comment.post_id) }}#comment-{{ report.comment.id }}" target="_blank" style="margin-left: auto; color: var(--primary-color); font-size: 0.75rem; font-weight: 700; text-decoration: none;">OPEN COMMENT <i class="fa-solid fa-external-link" style="font-size: 0.8em;"></i></a>
+                                    </div>
+                                    <div style="font-size: 1rem; line-height: 1.5; color: var(--text-main);">{{ report.comment.body }}</div>
+                                {% else %}
+                                    <div style="text-align: center; padding: 20px; color: var(--text-muted); font-style: italic;">Comment was already deleted.</div>
+                                {% endif %}
+                            {% elif report.target_type == 'user' %}
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    {% if report.target_user %}
+                                        <img src="{{ report.target_user|character_url or url_for('static', filename='images/default_avatar.png') }}" style="width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--border-color);">
+                                        <div>
+                                            <div style="font-weight: 800; font-size: 1.1rem;">@{{ report.target_user.username }}</div>
+                                            <div style="font-size: 0.85rem; color: var(--text-muted);">Joined {{ report.target_user.join_date.strftime('%B %Y') }}</div>
+                                        </div>
+                                        <a href="{{ url_for('user', username=report.target_user.username) }}" target="_blank" style="margin-left: auto; color: var(--primary-color); font-size: 0.75rem; font-weight: 700; text-decoration: none;">VIEW PROFILE <i class="fa-solid fa-external-link" style="font-size: 0.8em;"></i></a>
+                                    {% else %}
+                                        <div style="text-align: center; padding: 10px; color: var(--text-muted); font-style: italic; width: 100%;">Account no longer exists.</div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Resolution Area -->
+                    <div style="width: 140px; display: flex; flex-direction: column; gap: 8px;">
+                        <label style="font-size: 0.6rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px;">Decision</label>
+                        
+                        <form action="{{ url_for('admin_handle_report', report_id=report.id, action='dismiss') }}" method="post">
+                            <button type="submit" class="admin-btn" style="width: 100%; padding: 8px 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; background: var(--primary-soft); color: var(--primary-color); border: 1px solid var(--primary-color); cursor: pointer; transition: all 0.2s; font-size: 0.75rem;">
+                                <i class="fa-solid fa-check"></i> Safe
+                            </button>
+                        </form>
+
+                        <div style="height: 1px; background: var(--border-color); margin: 2px 0;"></div>
+
+                        {% if report.target_type in ['post', 'comment'] %}
+                        <form action="{{ url_for('admin_handle_report', report_id=report.id, action='delete_content') }}" method="post" style="display: flex; flex-direction: column; gap: 8px;">
+                            <select name="restriction" style="padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); width: 100%; font-size: 0.7rem; background: var(--card-bg); color: var(--text-main); font-weight: 600; cursor: pointer;">
+                                <option value="none">Just Delete</option>
+                                <option value="7">D + 7d</option>
+                                <option value="15">D + 15d</option>
+                                <option value="ban">D + PBan</option>
+                            </select>
+                            <button type="submit" class="admin-btn danger" style="padding: 8px 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; background: #ef4444; color: white; border: none; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.15); cursor: pointer; transition: all 0.2s; font-size: 0.75rem;">
+                                <i class="fa-solid fa-trash-can"></i> Restrict
+                            </button>
+                        </form>
+                        {% elif report.target_type == 'user' %}
+                        <form action="{{ url_for('admin_handle_report', report_id=report.id, action='ban_user') }}" method="post" onsubmit="return confirm('Ban this user permanently?');">
+                            <button type="submit" class="admin-btn danger" style="width: 100%; padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; background: #ef4444; color: white; border: none; cursor: pointer;">
+                                <i class="fa-solid fa-ban"></i> Ban Account
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 60px 40px; color: var(--text-muted); background: var(--card-bg); border-radius: 24px; border: 1px dashed var(--border-color);">
+                <i class="fa-regular fa-face-smile" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.4;"></i>
+                <h4 style="margin: 0; font-size: 1.25rem;">Nothing to moderate!</h4>
+                <p style="margin-top: 8px;">All reports have been addressed.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="admin-tab-content" id="tab-users">
+        <div style="margin-bottom: 20px; display: flex; gap: 12px; align-items: center;">
+            <input type="text" id="user-search" placeholder="Search by username or email..." 
+                   style="flex: 1; padding: 14px 20px; border-radius: 16px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-main); font-weight: 600;"
+                   onkeyup="filterUsers()">
+            {% if active_filter %}
+            <div style="background: var(--primary-soft); color: var(--primary-color); padding: 10px 16px; border-radius: 12px; border: 1px solid var(--primary-color); display: flex; align-items: center; gap: 10px; font-weight: 700; white-space: nowrap;">
+                <i class="fa-solid fa-filter"></i>
+                Filtering: {{ active_filter|capitalize }}
+                <a href="{{ url_for('admin_dashboard', tab='users') }}" style="color: var(--primary-color); text-decoration: none; font-size: 1.1rem; border-left: 1px solid var(--primary-color); padding-left: 10px; margin-left: 5px;">
+                    <i class="fa-solid fa-xmark"></i>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        <div style="background: var(--card-bg); border-radius: 20px; border: 1px solid var(--border-color); overflow: hidden; overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; min-width: 600px;">
+                <thead style="background: var(--primary-soft);">
+                    <tr>
+                        <th style="padding: 16px 20px; font-size: 0.85rem; text-transform: uppercase;">User</th>
+                        <th style="padding: 16px 20px; font-size: 0.85rem; text-transform: uppercase;">Status</th>
+                        <th style="padding: 16px 20px; font-size: 0.85rem; text-transform: uppercase;">Joined</th>
+                        <th style="padding: 16px 20px; font-size: 0.85rem; text-transform: uppercase; text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="user-table-body">
+                    {% for u in all_users %}
+                    {% set is_temp_banned = u.is_currently_banned and not u.is_banned %}
+                    <tr class="user-row {{ 'banned-row' if u.is_banned }} {{ 'restricted-row' if is_temp_banned }}" 
+                        style="border-bottom: 1px solid var(--border-color); 
+                        {% if u.is_banned %}background: rgba(239, 68, 68, 0.03);
+                        {% elif is_temp_banned %}background: rgba(245, 158, 11, 0.03);{% endif %}">
+                        <td style="padding: 16px 20px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                {% set avatar = u|character_url %}
+                                <img src="{{ avatar if avatar else url_for('static', filename='images/default_avatar.png') }}" 
+                                     style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; {{ 'filter: grayscale(1);' if u.is_banned }}">
+                                <div>
+                                    <div style="font-weight: 700; color: {% if u.is_banned %}var(--danger){% elif is_temp_banned %}var(--warning){% else %}var(--text-main){% endif %};">
+                                        <a href="{{ url_for('user', username=u.username) }}" style="color: inherit; text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s;" 
+                                           onmouseover="this.style.borderColor='currentColor'" 
+                                           onmouseout="this.style.borderColor='transparent'">
+                                            @{{ u.username }}
+                                        </a>
+                                    </div>
+                                    <div style="font-size: 0.8rem; color: var(--text-muted);">{{ u.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="padding: 16px 20px;">
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                {% if u.is_admin %}<span style="background: var(--primary-color); color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 800;">ADMIN</span>{% endif %}
+                                {% if u.is_permanently_banned %}
+                                    <span style="background: var(--danger); color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);">BANNED</span>
+                                {% elif u.is_temporarily_restricted %}
+                                    <span style="background: var(--warning); color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);">RESTRICTED</span>
+                                    <div style="margin-top: 4px; display: flex; align-items: center; gap: 4px; color: var(--warning); font-size: 0.65rem; font-weight: 800;">
+                                        <i class="fa-solid fa-clock-rotate-left"></i>
+                                        <span class="countdown" data-until="{{ u.banned_until.strftime('%Y-%m-%dT%H:%M:%SZ') }}"></span>
+                                    </div>
+                                {% endif %}
+                                {% if not u.is_admin and not u.is_currently_banned %}<span style="color: var(--text-muted); font-size: 0.75rem; font-weight: 600;">Standard</span>{% endif %}
+                            </div>
+                        </td>
+                        <td style="padding: 16px 20px; font-size: 0.85rem; color: var(--text-muted);">{{ u.join_date.strftime('%b %d, %Y') }}</td>
+                        <td style="padding: 16px 20px; text-align: right;">
+                            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                                <form action="{{ url_for('admin_toggle_status', user_id=u.id, status_type='admin') }}" method="post">
+                                    <button type="submit" title="{{ 'Demote' if u.is_admin else 'Promote to Admin' }}" style="padding: 8px 12px; border-radius: 8px; display: flex; align-items: center; gap: 6px; font-weight: 600; background: {% if u.is_admin %}var(--primary-soft){% else %}var(--card-bg){% endif %}; border: 1px solid var(--border-color); color: {% if u.is_admin %}var(--primary-color){% else %}var(--text-muted){% endif %}; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; font-size: 0.8rem;">
+                                        <i class="fa-solid {{ 'fa-user-minus' if u.is_admin else 'fa-user-shield' }}"></i> {{ 'Demote' if u.is_admin else 'Admin' }}
+                                    </button>
+                                </form>
+                                
+                                {% if u.is_temporarily_restricted %}
+                                <form action="{{ url_for('admin_unrestrict_user', user_id=u.id) }}" method="post">
+                                    <button type="submit" title="Unrestrict User" style="padding: 8px 12px; border-radius: 8px; display: flex; align-items: center; gap: 6px; font-weight: 600; background: var(--primary-soft); border: 1px solid var(--primary-color); color: var(--primary-color); cursor: pointer; font-size: 0.8rem;">
+                                        <i class="fa-solid fa-user-check"></i> Unrestrict
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form action="{{ url_for('admin_toggle_status', user_id=u.id, status_type='ban') }}" method="post">
+                                    <button type="submit" title="{{ 'Unban' if u.is_permanently_banned else 'Ban' }}" style="padding: 8px 12px; border-radius: 8px; display: flex; align-items: center; gap: 6px; font-weight: 600; background: {% if u.is_permanently_banned %}var(--card-bg){% else %}var(--danger){% endif %}; border: 1px solid var(--border-color); color: {% if u.is_permanently_banned %}var(--text-main){% else %}white{% endif %}; transition: transform 0.2s, box-shadow 0.2s; box-shadow: {% if u.is_permanently_banned %}0 2px 5px rgba(0,0,0,0.05){% else %}0 4px 10px rgba(231, 76, 60, 0.2){% endif %}; cursor: pointer; font-size: 0.8rem;">
+                                        <i class="fa-solid {{ 'fa-user-check' if u.is_permanently_banned else 'fa-user-slash' }}"></i> 
+                                        {{ 'Unban' if u.is_permanently_banned else 'Ban' }}
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="admin-tab-content" id="tab-messages">
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+            {% for msg in contact_messages %}
+            <div class="admin-list-item {{ 'unread' if not msg.is_read }}">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <div style="font-weight: 800; font-size: 1.1rem; color: var(--text-main);">{{ msg.subject }}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">{{ msg.timestamp.strftime('%b %d, %H:%M') }}</div>
+                </div>
+                <div style="font-size: 0.9rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-circle-user" style="color: var(--primary-color);"></i>
+                    <span style="font-weight: 700;">{{ msg.name }}</span> 
+                    <span style="color: var(--text-muted);">({{ msg.email }})</span>
+                </div>
+                <div style="line-height: 1.6; padding: 12px; background: rgba(0,0,0,0.02); border-radius: 12px; border-left: 3px solid var(--primary-color); margin-bottom: 16px;">
+                    {{ msg.message }}
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    {% if not msg.is_read %}
+                    <form action="{{ url_for('admin_handle_contact', msg_id=msg.id, action='read') }}" method="post">
+                        <button type="submit" style="padding: 10px 16px; border-radius: 10px; display: flex; align-items: center; gap: 8px; font-weight: 600; background: var(--primary-color); color: white; border: none; box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3); transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; font-size: 0.85rem;"><i class="fa-solid fa-envelope-open"></i> Read</button>
+                    </form>
+                    {% else %}
+                    <form action="{{ url_for('admin_handle_contact', msg_id=msg.id, action='unread') }}" method="post">
+                        <button type="submit" style="padding: 10px 16px; border-radius: 10px; display: flex; align-items: center; gap: 8px; font-weight: 600; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main); transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; font-size: 0.85rem;"><i class="fa-solid fa-envelope"></i> Unread</button>
+                    </form>
+                    {% endif %}
+                    <form action="{{ url_for('admin_handle_contact', msg_id=msg.id, action='delete') }}" method="post" onsubmit="return confirm('Delete message?');">
+                        <button type="submit" style="padding: 10px 16px; border-radius: 10px; display: flex; align-items: center; gap: 8px; font-weight: 700; background: var(--danger); color: white; border: none; box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3); transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; font-size: 0.85rem;"><i class="fa-solid fa-trash-can"></i> Delete</button>
+                    </form>
+                </div>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 60px 40px; color: var(--text-muted); background: var(--card-bg); border-radius: 24px;">
+                <p>No messages received yet.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .main-content {
+        max-width: 100% !important; /* Override layout max-width for admin dashboard */
+        min-width: 0;
+    }
+    .admin-container {
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .admin-tab {
+        padding: 12px 20px;
+        border-radius: 14px;
+        border: none;
+        background: var(--card-bg);
+        color: var(--text-muted);
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        white-space: nowrap;
+        transition: all 0.2s ease;
+        border: 1px solid var(--border-color);
+    }
+    .admin-tab:hover {
+        background: var(--primary-soft);
+        color: var(--primary-color);
+    }
+    .admin-tab.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+    .admin-tab .badge {
+        background: #ef4444;
+        color: white;
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        border-radius: 8px;
+    }
+    .admin-tab-content {
+        display: none;
+        animation: fadeIn 0.3s ease;
+    }
+    .admin-tab-content.active {
+        display: block;
+    }
+    .stat-card {
+        background: var(--card-bg);
+        padding: 30px;
+        border-radius: 24px;
+        border: 1px solid var(--border-color);
+        text-align: center;
+        box-shadow: var(--glass-shadow);
+        transition: transform 0.3s ease;
+    }
+    .stat-card:hover { transform: translateY(-5px); }
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        margin: 0 auto 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        font-size: 1.4rem;
+    }
+    .stat-value { font-size: 2.2rem; font-weight: 800; color: var(--primary-color); }
+    .stat-label { font-weight: 700; color: var(--text-muted); margin-top: 4px; }
+    
+    .admin-list-item {
+        background: var(--card-bg);
+        padding: 24px;
+        border-radius: 20px;
+        border: 1px solid var(--border-color);
+        transition: background 0.2s ease;
+    }
+    .admin-list-item.unread { border-left: 4px solid var(--primary-color); border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
+    
+    .report-badge {
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+    .report-badge.post { background: rgba(99, 102, 241, 0.1); color: #6366f1; }
+    .report-badge.comment { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+    .report-badge.user { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    
+    .admin-btn {
+        padding: 10px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        border: none;
+        cursor: pointer;
+        width: 100%;
+        transition: opacity 0.2s;
+    }
+    .admin-btn.secondary { background: var(--bg-color); color: var(--text-main); border: 1px solid var(--border-color); }
+    .admin-btn.danger { background: #ef4444; color: white; }
+    .admin-btn:hover { opacity: 0.9; }
+
+    .admin-btn-small {
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        background: var(--primary-color);
+        color: white;
+    }
+    .admin-btn-small.secondary { background: var(--bg-color); color: var(--text-muted); border: 1px solid var(--border-color); }
+    .admin-btn-small.danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+    .admin-icon-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-color);
+        color: var(--text-muted);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+    .admin-icon-btn:hover { background: var(--primary-soft); color: var(--primary-color); }
+    .admin-icon-btn.danger:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+
+<script>
+function showTab(tabId) {
+    document.querySelectorAll('.admin-tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    document.querySelectorAll('.admin-tab').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.getElementById('tab-' + tabId).classList.add('active');
+    document.getElementById('tab-btn-' + tabId).classList.add('active');
+}
+
+// Handle query params for tab and filter
+window.addEventListener('DOMContentLoaded', (event) => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam) {
+        showTab(tabParam);
+    } else {
+        showTab('stats');
+    }
+});
+
+function filterUsers() {
+    let input = document.getElementById('user-search');
+    let filter = input.value.toLowerCase();
+    let rows = document.querySelectorAll('.user-row');
+    
+    rows.forEach(row => {
+        let text = row.innerText.toLowerCase();
+        row.style.display = text.includes(filter) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}
+

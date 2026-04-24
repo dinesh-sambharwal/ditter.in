@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} of {{ user.username }} / Ditter{% endblock %}
+
+{% block content %}
+<div class="feed-layout">
+    <div class="sidebar">
+        <a href="{{ url_for('user', username=user.username) }}" class="btn-primary" style="margin-bottom: 20px; display: inline-block;">&larr; Back to {{ user.username }}</a>
+    </div>
+
+    <div class="main-feed">
+        <div class="form-container" style="padding: 20px; margin-top: 0; margin-bottom: 20px;">
+            <h2 style="margin-top: 0; margin-bottom: 0;">{{ title }}</h2>
+        </div>
+
+        <div class="posts-list">
+            {% for display_user in display_users %}
+                <div class="form-container" style="margin: 10px 0; padding: 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background-color 0.2s;" onclick="window.location.href='{{ url_for('user', username=display_user.username) }}'">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 1.2rem;">
+                            {{ display_user.username[0]|upper }}
+                        </div>
+                        <div>
+                            <strong style="font-size: 1.1rem; display: block;">{{ display_user.username }}</strong>
+                            <span class="text-muted" style="font-size: 0.9em;">@{{ display_user.username }}</span>
+                        </div>
+                    </div>
+                    {% if current_user != display_user %}
+                        <div onclick="event.stopPropagation();">
+                            {% if current_user.is_following(display_user) %}
+                                <a href="{{ url_for('unfollow', username=display_user.username) }}" class="btn-primary" style="background-color: var(--bg-color); color: var(--primary-color);">Unfollow</a>
+                            {% elif display_user.has_requested_follow(current_user) %}
+                                <button class="btn-primary" style="background-color: var(--bg-color); color: var(--text-muted); border-color: var(--text-muted);" disabled>Request Sent</button>
+                            {% else %}
+                                <a href="{{ url_for('follow', username=display_user.username) }}" class="btn-primary">Follow</a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="text-muted" style="text-align: center; padding: 40px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 10px;">
+                    <i class="fa-solid fa-users" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                    <p style="margin: 0; font-size: 1.1rem;">No users found.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="sidebar"></div>
+</div>
+{% endblock %}
